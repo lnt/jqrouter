@@ -1,7 +1,7 @@
 registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	
 	var pathname, hash;
-	controller.hashchange = function(){
+	jqrouter.hashchange = function(){
 		var _path = document.location.pathname
 		var _hash = document.location.hash;
 		if (hash != document.location.hash) {
