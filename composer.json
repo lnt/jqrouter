@@ -1,0 +1,11 @@
+{
+    "name": "jqgeeks/jqrouter",
+    "type": "utility",
+    "description": "Simple UI URL Router",
+    "keywords": ["javascript", "controller", "router"],
+    "license": "MIT",
+    
+    "require": {
+       "webmodules/foo": ">=0.0.0"
+    }
+}
