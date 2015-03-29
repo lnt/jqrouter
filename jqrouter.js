@@ -1,6 +1,6 @@
 registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	
-	var pathname, hash;
+	var pathname, hash, contextPath = "/";
 	jqrouter.hashchange = function(){
 		var _path = document.location.pathname
 		var _hash = document.location.hash;
@@ -10,14 +10,15 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 		if (pathname != document.location.pathname) {
 			pathname = document.location.pathname;
-			this.invoke(pathname);
+			this.invoke(pathname.replace(contextPath,"/"));
 		}
 	};
 	
 	jqrouter.cache = {};
 	jqrouter.onchange_map = {};
 	jqrouter.refineKey = function(_key){
-		return _key.replace(/\{(.*?)\}/gi,'*')
+		//(contextPath + _key).replace(/[\/]+/g,'/')
+		return (_key).replace(/\{(.*?)\}/gi,'*')
 		return _key;// .replace(/\[/gi, '#').replace(/\]/gi, '');
 	};
 	jqrouter.split = function(key){
@@ -30,6 +31,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	};
 	jqrouter.on = function(_key, fun, isHTTP){
 		var key = this.refineKey(_key);
+		console.error("key",key);
 		var keys = jqrouter.split(key);
 		var ref = this.onchange_fun;
 		var _nextKey = keys[0];
@@ -114,4 +116,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 		return jqrouter.hashchange();
 	}
+	jqrouter._config_ = function(moduleConfig,appConfig){
+		contextPath = appConfig.contextPath;
+	};
 });
