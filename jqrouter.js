@@ -1,6 +1,7 @@
 registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	
-	var pathname, hash, contextPath = "/";
+	var pathname, hash, contextPath = "/",hashData = {};
+	var HASH_PREFIX = "#_=";
 	jqrouter.hashchange = function(){
 		var _path = document.location.pathname
 		var _hash = document.location.hash;
@@ -96,7 +97,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 	};
 	jqrouter.go = function(url){
-		return window.history.pushState(null,null,url);
+		return window.history.pushState(null,null,(contextPath + url).replace(/[\/]+/g,'/'));
 	};
 	jqrouter._ready_ = function(){
 	    var pushState = history.pushState;
@@ -114,8 +115,45 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 			console.warn("url changed",e);
 			jqrouter.hashchange();
 		}
+		$('body').on('click','a', function(e){
+			var href = this.getAttribute('href');
+			if(!utils.url.isRemote(href) && !e.ctrlKey){
+				if(href.indexOf(HASH_PREFIX) === 0){
+					var params = href.replace(HASH_PREFIX,"").split(":");
+					jqrouter.setKey.apply(jqrouter,params);
+					var myEvent = new Event("jqrouter.key."+params[0])
+					//this.dispatchEvent(myEvent);
+					$(this).trigger("jqrouter.key."+params[0],{key : params[0], value : params[1]});
+				} else {
+					jqrouter.go(href.replace(contextPath,"/"));
+				}
+				return preventPropagation(e)
+			}
+		});
+		jqrouter.on("#_/{hashdata}",function(a,b){
+			hashData = JSON.parse(decode64(a));
+		});
 		return jqrouter.hashchange();
-	}
+	};
+	
+	jqrouter.setKey = function(key,value){
+		if(hashData[key] !== value){
+			hashData[key] = value;
+			jqrouter.go("#_/"+encode64(JSON.stringify(hashData)));
+		}
+	};
+	jqrouter.getKey = function(key,defValue){
+		return hashData[key] ===undefined ? defValue : hashData[key];
+	};
+	
+	jqrouter.getKeys = function(keyMap){
+		var retMap = {};
+		for(var key in keyMap){
+			retMap[key] = jqrouter.getKey(key,keyMap[key])
+		}
+		return retMap;
+	};
+	
 	jqrouter._config_ = function(moduleConfig,appConfig){
 		contextPath = appConfig.contextPath;
 	};
