@@ -1,7 +1,7 @@
 registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	
 	var pathname, hash, contextPath = "/",hashData = {};
-	var HASH_PREFIX = "#_=";
+	var HASH_PREFIX = "#&";
 	jqrouter.hashchange = function(){
 		var _path = document.location.pathname
 		var _hash = document.location.hash;
@@ -47,15 +47,6 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 				};
 			ref = ref[_atKey];
 		}
-//		ref['@' + _nextKey] = ref['@' + _nextKey] || {
-//			fun : [],
-//			key : _nextKey, next : function(o){
-//				console.debug("oooo>",this.key)
-//				for(var i in this.fun){
-//					this.fun[i].apply(jqrouter,o.arg);
-//				}
-//			}, isHTTP : isHTTP, nextKey : null
-//		};
 		ref.fun.push(fun);
 	};
 
@@ -130,7 +121,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 			var href = this.getAttribute('href');
 			if(!utils.url.isRemote(href) && !e.ctrlKey){
 				if(href.indexOf(HASH_PREFIX) === 0){
-					var params = href.replace(HASH_PREFIX,"").split(":");
+					var params = href.replace(HASH_PREFIX,"").split("=");
 					jqrouter.setKey.apply(jqrouter,params);
 					var myEvent = new Event("jqrouter.key."+params[0])
 					//this.dispatchEvent(myEvent);
