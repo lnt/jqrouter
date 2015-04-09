@@ -19,7 +19,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	jqrouter.onchange_map = {};
 	jqrouter.refineKey = function(_key){
 		//(contextPath + _key).replace(/[\/]+/g,'/')
-		return (_key).replace(/\{(.*?)\}/gi,'*')
+		return (_key).replace(/\{(.*?)\}/gi,'$')
 		return _key;// .replace(/\[/gi, '#').replace(/\]/gi, '');
 	};
 	jqrouter.split = function(key){
@@ -37,41 +37,52 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		var ref = this.onchange_fun;
 		var _nextKey = keys[0];
 		var _key = keys[0];
-		for ( var i = 0; i < keys.length - 1; i++) {
+		for ( var i = 0; i < keys.length ; i++) {
 			_key = keys[i];
 			_nextKey = keys[i + 1];
 			_atKey = '@' + _key;
-			if (!ref[_atKey])
-				ref[_atKey] = {
-					key : _key, next : this.next, nextKey : _nextKey
+			ref[_atKey] = ref[_atKey] || {
+					fun : [],
+					key : _key, nextKey : _nextKey, next : jqrouter.next
 				};
 			ref = ref[_atKey];
 		}
-		ref['@' + _nextKey] = {
-			fun : fun,
-			key : _nextKey, next : function(o){
-				console.warn("oo",o)
-				this.fun.apply(jqrouter,o.arg)
-			}, isHTTP : isHTTP, nextKey : null
-		};
+//		ref['@' + _nextKey] = ref['@' + _nextKey] || {
+//			fun : [],
+//			key : _nextKey, next : function(o){
+//				console.debug("oooo>",this.key)
+//				for(var i in this.fun){
+//					this.fun[i].apply(jqrouter,o.arg);
+//				}
+//			}, isHTTP : isHTTP, nextKey : null
+//		};
+		ref.fun.push(fun);
 	};
 
 	// execute event handler
 	jqrouter._callFun = function(key){
 		var keys = jqrouter.split(key);
 		if (this.onchange_fun.next) {
-			return this.onchange_fun.next({
+			return this.onchange_fun.next(0,{
 				url : key, arg : [], index : 0, keys : keys
 			});
 		}
 	};
 
-	jqrouter.next = function(o){
-		if (this['@' + o.keys[o.index]]) {
-			return this['@' + o.keys[o.index++]].next(o);
-		} else if (this['@*']) {
-			o.arg.push(o.keys[o.index++]);
-			return this['@*'].next(o);
+	jqrouter.next = function(index,o){
+		console.info(this,"===>",this.key,o.keys,index);
+		var curIndex = o.index++;
+		if (this['@' + o.keys[index]]) {
+			this['@' + o.keys[index]].next(index+1,o);
+		}
+		if (this['@$']) {
+			o.arg.push(o.keys[index]);
+			this['@$'].next(index+1,o);
+		}
+		if(index==o.keys.length){
+			for(var j in this.fun){
+				this.fun[j].apply(jqrouter,o.arg);
+			}
 		}
 		return true;
 	};
