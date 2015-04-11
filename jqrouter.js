@@ -1,7 +1,7 @@
 registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	
 	var pathname, hash, contextPath = "/",hashData = {};
-	var HASH_PREFIX = "#&";
+	var HASH_PARAM_PREFIX = "#&";
 	jqrouter.hashchange = function(){
 		var _path = document.location.pathname
 		var _hash = document.location.hash;
@@ -19,16 +19,19 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	jqrouter.onchange_map = {};
 	jqrouter.refineKey = function(_key){
 		//(contextPath + _key).replace(/[\/]+/g,'/')
-		return (_key).replace(/\{(.*?)\}/gi,'$')
+		return (jqrouter.cleanUrl(_key+"/")).replace(/\{(.*?)\}/gi,'$')
 		return _key;// .replace(/\[/gi, '#').replace(/\]/gi, '');
 	};
 	jqrouter.split = function(key){
 		return key.split(/[\/]+/gi);
 	};
 	jqrouter.invoke = function(_key){
-		console.warn("invokd..",_key)
-		var key = this.refineKey(_key);
-		return this.callFun(key);
+		if(_key.indexOf("#?") === 0){
+			hashData = jqrouter.decode(_key.replace("#?",""));
+		} else {
+			var key = this.refineKey(_key);
+			return this.callFun(key);
+		}
 	};
 	jqrouter.on = function(_key, fun, isHTTP){
 		var key = this.refineKey(_key);
@@ -98,8 +101,12 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 			delete this.onchange_map[key]
 		}
 	};
+	jqrouter.cleanUrl = function(url){
+		return url.replace(/[\/]+/g,'/');
+	};
 	jqrouter.go = function(url){
-		return window.history.pushState(null,null,(contextPath + url).replace(/[\/]+/g,'/'));
+		var goURL = ((url+"").indexOf("#") === 0) ? url : jqrouter.cleanUrl(contextPath + url);
+		return window.history.pushState(null,null,goURL);
 	};
 	jqrouter._ready_ = function(){
 	    var pushState = history.pushState;
@@ -119,21 +126,19 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 		$('body').on('click','a', function(e){
 			var href = this.getAttribute('href');
-			if(!utils.url.isRemote(href) && !e.ctrlKey){
-				if(href.indexOf(HASH_PREFIX) === 0){
-					var params = href.replace(HASH_PREFIX,"").split("=");
-					jqrouter.setKey.apply(jqrouter,params);
-					var myEvent = new Event("jqrouter.key."+params[0])
-					//this.dispatchEvent(myEvent);
-					$(this).trigger("jqrouter.key."+params[0],{key : params[0], value : params[1]});
+			if(!jqrouter.isRemote(href) && !e.ctrlKey){
+				if(href.indexOf(HASH_PARAM_PREFIX) === 0){
+					var params = href.replace(HASH_PARAM_PREFIX,"").split("=");
+					if(jqrouter.setKey.apply(jqrouter,params)){
+						$(this).trigger("jqrouter.key."+params[0],{key : params[0], value : params[1]});
+					}
+				} else if(href.indexOf("#") === 0){
+					//jqrouter.go(href.replace(contextPath,"/"));
 				} else {
 					jqrouter.go(href.replace(contextPath,"/"));
 				}
 				return preventPropagation(e)
 			}
-		});
-		jqrouter.on("#_/{hashdata}",function(a,b){
-			hashData = JSON.parse(decode64(a));
 		});
 		return jqrouter.hashchange();
 	};
@@ -141,8 +146,9 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	jqrouter.setKey = function(key,value){
 		if(hashData[key] !== value){
 			hashData[key] = value;
-			jqrouter.go("#_/"+encode64(JSON.stringify(hashData)));
-		}
+			jqrouter.go("#?"+jqrouter.encode(hashData));
+			return true
+		} return false
 	};
 	jqrouter.getKey = function(key,defValue){
 		return hashData[key] ===undefined ? defValue : hashData[key];
@@ -155,7 +161,34 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 		return retMap;
 	};
+	jqrouter.encode = function(param){
+		return $.param(param);
+		return encode64(JSON.stringify(hashData))
+	};
 	
+	jqrouter.decode = function (value) {
+	    var
+	    // Object that holds names => values.
+	    params = {},
+	    // Get query string pieces (separated by &)
+	    pieces = value.split('&'),
+	    // Temporary variables used in loop.
+	    pair, i, l;
+
+	    // Loop through query string pieces and assign params.
+	    for (i = 0, l = pieces.length; i < l; i++) {
+	        pair = pieces[i].split('=', 2);
+	        // Repeated parameters with the same name are overwritten. Parameters
+	        // with no value get set to boolean true.
+	        params[decodeURIComponent(pair[0])] = (pair.length == 2 ?
+	            decodeURIComponent(pair[1].replace(/\+/g, ' ')) : true);
+	    }
+	    return params;
+	    return JSON.parse(decode64(value));
+	};
+	jqrouter.isRemote = function(path){
+		return  (path.indexOf('http://')==0 || path.indexOf('https://')==0)
+	};
 	jqrouter._config_ = function(moduleConfig,appConfig){
 		contextPath = appConfig.contextPath;
 	};
