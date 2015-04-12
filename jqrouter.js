@@ -108,6 +108,9 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		var goURL = ((url+"").indexOf("#") === 0) ? url : jqrouter.cleanUrl(contextPath + url);
 		return window.history.pushState(null,null,goURL);
 	};
+	jqrouter.reload = function(url){
+		window.location.href = (url!==undefined)?  jqrouter.cleanUrl(contextPath + url) : window.location.href;
+	};
 	jqrouter._ready_ = function(){
 	    var pushState = history.pushState;
 	    
@@ -124,20 +127,21 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 			console.warn("url changed",e);
 			jqrouter.hashchange();
 		}
-		$('body').on('click','a', function(e){
+		$('body').on('click','a.jqrouter', function(e){
 			var href = this.getAttribute('href');
 			if(!jqrouter.isRemote(href) && !e.ctrlKey){
 				if(href.indexOf(HASH_PARAM_PREFIX) === 0){
 					var params = href.replace(HASH_PARAM_PREFIX,"").split("=");
 					if(jqrouter.setKey.apply(jqrouter,params)){
-						$(this).trigger("jqrouter.key."+params[0],{key : params[0], value : params[1]});
+						$(this).trigger("jqrouter.#&"+params[0],{key : params[0], value : params[1]});
 					}
+					return preventPropagation(e)
 				} else if(href.indexOf("#") === 0){
 					//jqrouter.go(href.replace(contextPath,"/"));
 				} else {
 					jqrouter.go(href.replace(contextPath,"/"));
+					return preventPropagation(e)
 				}
-				return preventPropagation(e)
 			}
 		});
 		return jqrouter.hashchange();
