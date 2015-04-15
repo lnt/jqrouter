@@ -1,6 +1,6 @@
 registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	
-	var pathname, hash, contextPath = "/",hashData = {};
+	var pathname, hash, contextPath = "/",hashData = {},counter=0;
 	var HASH_PARAM_PREFIX = "#&";
 	jqrouter.hashchange = function(){
 		var _path = document.location.pathname
@@ -25,7 +25,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	jqrouter.split = function(key){
 		return key.split(/[\/]+/gi);
 	};
-	jqrouter.invoke = function(_key){
+	jqrouter.invoke = function(_key,id){
 		if(_key.indexOf("#?") === 0){
 			hashData = jqrouter.decode(_key.replace("#?",""));
 		} else {
@@ -50,15 +50,17 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 				};
 			ref = ref[_atKey];
 		}
+		fun.id = counter++;
 		ref.fun.push(fun);
+		jqrouter._callFun(jqrouter.refineKey(document.location.pathname).replace(contextPath,"/"),fun.id)
 	};
 
 	// execute event handler
-	jqrouter._callFun = function(key){
+	jqrouter._callFun = function(key,id){
 		var keys = jqrouter.split(key);
 		if (this.onchange_fun.next) {
 			return this.onchange_fun.next(0,{
-				url : key, arg : [], index : 0, keys : keys
+				url : key, arg : [], index : 0, keys : keys, id
 			});
 		}
 	};
@@ -75,7 +77,9 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 		if(index==o.keys.length){
 			for(var j in this.fun){
-				this.fun[j].apply(jqrouter,o.arg);
+				if(o.id===undefined || o.id === this.fun[j].id){
+					this.fun[j].apply(jqrouter,o.arg);
+				}
 			}
 		}
 		return true;
@@ -127,8 +131,8 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 			console.warn("url changed",e);
 			jqrouter.hashchange();
 		}
-		$('body').on('click','a.jqrouter', function(e){
-			var href = this.getAttribute('href');
+		$('body').on('click','a.jqrouter,a[jqrouter]', function(e){
+			var href = this.getAttribute('jqrouter') || this.getAttribute('href');
 			if(!jqrouter.isRemote(href) && !e.ctrlKey){
 				if(href.indexOf(HASH_PARAM_PREFIX) === 0){
 					var params = href.replace(HASH_PARAM_PREFIX,"").split("=");
