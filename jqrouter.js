@@ -5,13 +5,14 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	};
 	var _jqrouter_ = _jqrouter_ || jqrouter._instance_.prototype;
 	
+	var otherWise = true;
 	var pathname, hash, contextPath = "/",hashData = {},counter=0, intialized = false;;
 	var HASH_PARAM_PREFIX = "#&";
 	jqrouter.dead = {};
 	jqrouter.hashchange = function(){
 		var _hashChange = (hash != document.location.hash);
 		var _pathChange = (pathname != document.location.pathname);
-
+		otherWise = true;
 		/*
 		 * Need to change URL first as it may trigger twice in between
 		 */
@@ -83,6 +84,13 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 	};
 	
+	_jqrouter_.otherwise = function(goToURL){
+		if(otherWise){
+			jqrouter.go(goToURL)
+		}
+		return this;
+	};
+	
 	// execute event handler
 	jqrouter._callFun = function(key,id,args){
 		var keys = jqrouter.split(key);
@@ -110,6 +118,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 						delete jqrouter.dead[this.fun[j].id];
 						delete this.fun[j];
 					} else if(typeof this.fun[j] === 'function'){
+						otherWise = false;
 						this.fun[j].apply(jqrouter,o.arg.concat([o.extraArg]));
 					}
 				}
