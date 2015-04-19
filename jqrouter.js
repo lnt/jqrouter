@@ -1,16 +1,30 @@
 registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	
-	var pathname, hash, contextPath = "/",hashData = {},counter=0;
+	jqrouter._instance_ = function(){
+		this.ids = [];
+	};
+	var _jqrouter_ = _jqrouter_ || jqrouter._instance_.prototype;
+	
+	var pathname, hash, contextPath = "/",hashData = {},counter=0, intialized = false;;
 	var HASH_PARAM_PREFIX = "#&";
+	jqrouter.dead = {};
 	jqrouter.hashchange = function(){
-		var _path = document.location.pathname
-		var _hash = document.location.hash;
-		if (hash != document.location.hash) {
+		var _hashChange = (hash != document.location.hash);
+		var _pathChange = (pathname != document.location.pathname);
+
+		/*
+		 * Need to change URL first as it may trigger twice in between
+		 */
+		if (_hashChange) {
 			hash = document.location.hash;
+		}
+		if (_pathChange) {
+			pathname = document.location.pathname;
+		}
+		if(_hashChange){
 			this.invoke(hash);
 		}
-		if (pathname != document.location.pathname) {
-			pathname = document.location.pathname;
+		if(_pathChange){
 			this.invoke(pathname.replace(contextPath,"/"));
 		}
 	};
@@ -25,19 +39,19 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	jqrouter.split = function(key){
 		return key.split(/[\/]+/gi);
 	};
-	jqrouter.invoke = function(_key,id){
+	jqrouter.invoke = function(_key,args){
 		if(_key.indexOf("#?") === 0){
-			hashData = jqrouter.decode(_key.replace("#?",""));
+			jqrouter.setKeys(jqrouter.decode(_key.replace("#?","")));
 		} else {
 			var key = this.refineKey(_key);
-			return this.callFun(key);
+			return this.callFun(key,args);
 		}
 	};
-	jqrouter.on = function(_key, fun, isHTTP){
-		var key = this.refineKey(_key);
-		console.error("key",key);
+	
+	_jqrouter_.on = function(_key, fun, isHTTP){
+		var key = jqrouter.refineKey(_key);
 		var keys = jqrouter.split(key);
-		var ref = this.onchange_fun;
+		var ref = jqrouter.onchange_fun;
 		var _nextKey = keys[0];
 		var _key = keys[0];
 		for ( var i = 0; i < keys.length ; i++) {
@@ -52,21 +66,35 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 		fun.id = counter++;
 		ref.fun.push(fun);
-		jqrouter._callFun(jqrouter.refineKey(document.location.pathname).replace(contextPath,"/"),fun.id)
+		if(intialized){
+			jqrouter._callFun(jqrouter.refineKey(document.location.pathname).replace(contextPath,"/"),fun.id);
+		}
+		this.ids.push(fun.id);
+		return this;
+	};
+	jqrouter.on = function(_key, fun, isHTTP){
+		var self = jqrouter.instance ? jqrouter.instance() : new jqrouter._instance_();
+		return self.on(_key, fun, isHTTP);
 	};
 
+	_jqrouter_.off = function(){
+		for(var i in this.ids){
+			jqrouter.dead[this.ids[i]] = true;
+		}
+	};
+	
 	// execute event handler
-	jqrouter._callFun = function(key,id){
+	jqrouter._callFun = function(key,id,args){
 		var keys = jqrouter.split(key);
 		if (this.onchange_fun.next) {
 			return this.onchange_fun.next(0,{
-				url : key, arg : [], index : 0, keys : keys, id
+				url : key, arg : [], extraArg : args, 
+				index : 0, keys : keys, id : id
 			});
 		}
 	};
 
 	jqrouter.next = function(index,o){
-		console.info(this,"===>",this.key,o.keys,index);
 		var curIndex = o.index++;
 		if (this['@' + o.keys[index]]) {
 			this['@' + o.keys[index]].next(index+1,o);
@@ -77,8 +105,13 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 		if(index==o.keys.length){
 			for(var j in this.fun){
-				if(o.id===undefined || o.id === this.fun[j].id){
-					this.fun[j].apply(jqrouter,o.arg);
+				if(this.fun[j] && (o.id===undefined || o.id === this.fun[j].id)){
+					if(jqrouter.dead[this.fun[j].id]){
+						delete jqrouter.dead[this.fun[j].id];
+						delete this.fun[j];
+					} else if(typeof this.fun[j] === 'function'){
+						this.fun[j].apply(jqrouter,o.arg.concat([o.extraArg]));
+					}
 				}
 			}
 		}
@@ -88,20 +121,21 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		next : jqrouter.next,
 	};
 	
-	jqrouter.TRIGGER = debounce(function(){
-		jqrouter.trigger();
+	jqrouter.TRIGGER = debounce(function(arg){
+		intialized = true;
+		jqrouter.trigger(arg);
 	});
 	
 	// Registers an event to be triggered
-	jqrouter.callFun = function(key){
+	jqrouter.callFun = function(key,arg){
 		this.onchange_map[key] = true;
 		// return this._callFun(key);
-		jqrouter.TRIGGER();
+		jqrouter.TRIGGER(arg);
 	};
 	// process event queue
-	jqrouter.trigger = function(){
+	jqrouter.trigger = function(arg){
 		for ( var key in this.onchange_map) {
-			var propagation = this._callFun(key);
+			var propagation = this._callFun(key,undefined,arg);
 			delete this.onchange_map[key]
 		}
 	};
@@ -119,16 +153,19 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	    var pushState = history.pushState;
 	    
 	    history.pushState = function(state) {
-	    	console.warn("url pusing",state);
 	        if (typeof history.onpushstate == "function") {
 	           // history.onpushstate({state: state});
 	        }
-	        var ret = pushState.apply(history, arguments);
+	        var ret;
+	        if((arguments[2]+"").indexOf("#") === 0){
+	        	window.location.hash = arguments[2];
+	        } else {
+	        	ret = pushState.apply(history, arguments);
+	        }
 	        jqrouter.hashchange();
 	        return ret;
 	    }
 		window.onpopstate = history.onpushstate = function(e) {
-			console.warn("url changed",e);
 			jqrouter.hashchange();
 		}
 		$('body').on('click','a.jqrouter,a[jqrouter]', function(e){
@@ -137,8 +174,10 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 				if(href.indexOf(HASH_PARAM_PREFIX) === 0){
 					var params = href.replace(HASH_PARAM_PREFIX,"").split("=");
 					if(jqrouter.setKey.apply(jqrouter,params)){
-						$(this).trigger("jqrouter.#&"+params[0],{key : params[0], value : params[1]});
+						$(this).trigger("jqrouter#&"+params[0],{key : params[0], value : params[1]});
+						//jqrouter.invoke("#&"+params[0]+"=",params[1]);
 					}
+					//jqrouter.go("#?"+jqrouter.encode(hashData));
 					return preventPropagation(e)
 				} else if(href.indexOf("#") === 0){
 					//jqrouter.go(href.replace(contextPath,"/"));
@@ -148,18 +187,24 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 				}
 			}
 		});
-		return jqrouter.hashchange();
+		jqrouter.hashchange();
+	};
+	
+	var isChanged = function(key,value){
+		return (JSON.stringify(hashData[key]) !== JSON.stringify(value));
 	};
 	
 	jqrouter.setKey = function(key,value){
-		if(hashData[key] !== value){
-			hashData[key] = value;
+		if(isChanged(key,value)){
+			hashData[key] = JSON.parse(JSON.stringify(value));
 			jqrouter.go("#?"+jqrouter.encode(hashData));
+			jqrouter.invoke("#&"+key+"=",value);
 			return true
-		} return false
+		} return false;
 	};
+	
 	jqrouter.getKey = function(key,defValue){
-		return hashData[key] ===undefined ? defValue : hashData[key];
+		return hashData[key] ===undefined ? defValue : JSON.parse(JSON.stringify(hashData[key]));
 	};
 	
 	jqrouter.getKeys = function(keyMap){
@@ -169,27 +214,50 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 		return retMap;
 	};
+	jqrouter.setKeys = function(newHashData){
+		for(var key in newHashData){
+			if(isChanged(key,newHashData[key])){
+				hashData[key] = JSON.parse(JSON.stringify(newHashData[key]));
+				jqrouter.invoke("#&"+key+"=",newHashData[key])
+			}
+		}
+		jqrouter.go("#?"+jqrouter.encode(hashData));
+	};
 	jqrouter.encode = function(param){
 		return $.param(param);
 		return encode64(JSON.stringify(hashData))
 	};
 	
-	jqrouter.decode = function (value) {
-	    var
-	    // Object that holds names => values.
-	    params = {},
-	    // Get query string pieces (separated by &)
-	    pieces = value.split('&'),
-	    // Temporary variables used in loop.
-	    pair, i, l;
+	jqrouter.decode = function (p) {
+	    var params = {};
+	    var pairs = p.split('&');
+	    for (var i=0; i<pairs.length; i++) {
+	    	if(pairs[i]){
+	    		var pair = pairs[i].split('=');
+		        var accessors = [];
+		        var name = decodeURIComponent(pair[0]), value = decodeURIComponent(pair[1]);
 
-	    // Loop through query string pieces and assign params.
-	    for (i = 0, l = pieces.length; i < l; i++) {
-	        pair = pieces[i].split('=', 2);
-	        // Repeated parameters with the same name are overwritten. Parameters
-	        // with no value get set to boolean true.
-	        params[decodeURIComponent(pair[0])] = (pair.length == 2 ?
-	            decodeURIComponent(pair[1].replace(/\+/g, ' ')) : true);
+		        var name = name.replace(/\[([^\]]*)\]/g, function(k, acc) { accessors.push(acc); return ""; });
+		        accessors.unshift(name);
+		        var o = params;
+
+		        for (var j=0; j<accessors.length-1; j++) {
+		            var acc = accessors[j];
+		            var nextAcc = accessors[j+1];
+		            if (!o[acc]) {
+		                if ((nextAcc == "") || (/^[0-9]+$/.test(nextAcc)))
+		                    o[acc] = [];
+		                else
+		                    o[acc] = {};
+		            }
+		            o = o[acc];
+		        }
+		        acc = accessors[accessors.length-1];
+		        if (acc == "")
+		            o.push(value);
+		        else
+		            o[acc] = value;
+	    	}
 	    }
 	    return params;
 	    return JSON.parse(decode64(value));
