@@ -84,11 +84,15 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 	};
 	
-	_jqrouter_.otherwise = function(goToURL){
+	jqrouter.otherwise = function(goToURL){
 		if(otherWise){
 			jqrouter.go(goToURL)
 		}
 		return this;
+	};
+	
+	_jqrouter_.otherwise = function(goToURL){
+		return jqrouter.otherwise(goToURL);
 	};
 	
 	// execute event handler
