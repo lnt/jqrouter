@@ -2,16 +2,19 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	
 	jqrouter._instance_ = function(){
 		this.ids = [];
+		this.$matched = false;
 	};
 	var _jqrouter_ = _jqrouter_ || jqrouter._instance_.prototype;
 	
-	var otherWise = true;
+	var otherWise = true, $matched = false;
 	var pathname, hash, contextPath = "/",hashData = {},counter=0, intialized = false;;
 	var HASH_PARAM_PREFIX = "#&";
 	jqrouter.dead = {};
 	jqrouter.hashchange = function(){
 		var _hashChange = (hash != document.location.hash);
-		var _pathChange = (pathname != document.location.pathname);
+		var _pathChange = (pathname != document.location.pathname &&
+				(true || (document.location.pathname.length>0 && document.location.pathname.indexOf(pathname)!=0))
+		);
 		otherWise = true;
 		/*
 		 * Need to change URL first as it may trigger twice in between
@@ -34,7 +37,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	jqrouter.onchange_map = {};
 	jqrouter.refineKey = function(_key){
 		//(contextPath + _key).replace(/[\/]+/g,'/')
-		return (jqrouter.cleanUrl(_key+"/")).replace(/\{(.*?)\}/gi,'$')
+		return (jqrouter.cleanUrl(_key+"/")).replace(/\{(.*?)\}/gi,'$').replace("*","$");
 		return _key;// .replace(/\[/gi, '#').replace(/\]/gi, '');
 	};
 	jqrouter.split = function(key){
@@ -49,28 +52,36 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 	};
 	
-	_jqrouter_.on = function(_key, fun, isHTTP){
-		var key = jqrouter.refineKey(_key);
-		var keys = jqrouter.split(key);
-		var ref = jqrouter.onchange_fun;
-		var _nextKey = keys[0];
-		var _key = keys[0];
-		for ( var i = 0; i < keys.length ; i++) {
-			_key = keys[i];
-			_nextKey = keys[i + 1];
-			_atKey = '@' + _key;
-			ref[_atKey] = ref[_atKey] || {
-					fun : [],
-					key : _key, nextKey : _nextKey, next : jqrouter.next
-				};
-			ref = ref[_atKey];
+	_jqrouter_.on = function(__key, fun, isHTTP){
+		var __keys = (__key.indexOf("*")>-1) ? [__key.replace("*","{x}"),__key.replace("*","")] : [__key];
+		var isHASH = __key.indexOf("#")>-1
+		for(var _i in __keys){
+			var _key = __keys[_i];
+			var key = jqrouter.refineKey(_key);
+			var keys = jqrouter.split(key);
+			var ref = jqrouter.onchange_fun;
+			var _nextKey = keys[0];
+			var _key = keys[0];
+			for ( var i = 0; i < keys.length ; i++) {
+				_key = keys[i];
+				_nextKey = keys[i + 1];
+				_atKey = '@' + _key;
+				ref[_atKey] = ref[_atKey] || {
+						fun : [], ids : [],
+						key : _key, nextKey : _nextKey, next : jqrouter.next
+					};
+				ref = ref[_atKey];
+			}
+			var id = counter++;
+			ref.fun.push({ cb : fun, id : id, url : __keys[_i] });
+			if(intialized){
+				jqrouter._callFun(
+						isHASH ? jqrouter.refineKey(document.location.hash) :
+						jqrouter.refineKey(document.location.pathname).replace(contextPath,"/"),id);
+				this.$matched = this.$matched || $matched;
+			}
+			this.ids.push(id);			
 		}
-		fun.id = counter++;
-		ref.fun.push(fun);
-		if(intialized){
-			jqrouter._callFun(jqrouter.refineKey(document.location.pathname).replace(contextPath,"/"),fun.id);
-		}
-		this.ids.push(fun.id);
 		return this;
 	};
 	jqrouter.on = function(_key, fun, isHTTP){
@@ -84,20 +95,17 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		}
 	};
 	
-	jqrouter.otherwise = function(goToURL){
-		if(otherWise){
-			jqrouter.go(goToURL)
-		}
-		return this;
-	};
-	
 	_jqrouter_.otherwise = function(goToURL){
-		return jqrouter.otherwise(goToURL);
+		if(otherWise || !this.$matched){
+			jqrouter.go(goToURL);
+		}
+		return this
 	};
 	
 	// execute event handler
 	jqrouter._callFun = function(key,id,args){
 		var keys = jqrouter.split(key);
+		$matched = false;
 		if (this.onchange_fun.next) {
 			return this.onchange_fun.next(0,{
 				url : key, arg : [], extraArg : args, 
@@ -121,9 +129,10 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 					if(jqrouter.dead[this.fun[j].id]){
 						delete jqrouter.dead[this.fun[j].id];
 						delete this.fun[j];
-					} else if(typeof this.fun[j] === 'function'){
+					} else if(typeof this.fun[j].cb === 'function'){
 						otherWise = false;
-						this.fun[j].apply(jqrouter,o.arg.concat([o.extraArg]));
+						$matched = true;
+						this.fun[j].cb.apply(jqrouter,o.arg.concat([o.extraArg]));
 					}
 				}
 			}
