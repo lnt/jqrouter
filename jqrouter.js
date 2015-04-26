@@ -7,7 +7,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	var _jqrouter_ = _jqrouter_ || jqrouter._instance_.prototype;
 	
 	var otherWise = true, $matched = false;
-	var pathname, hash, contextPath = "/",hashData = {},counter=0, intialized = false;;
+	var pathname, hash, contextPath = "/",hashData = {},counter=0, intialized = false,otherwiseURL;
 	var HASH_PARAM_PREFIX = "#&";
 	jqrouter.dead = {};
 	jqrouter.hashchange = function(){
@@ -96,8 +96,10 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	};
 	
 	_jqrouter_.otherwise = function(goToURL){
-		if(otherWise || !this.$matched){
+		if(intialized && (otherWise || !this.$matched)){
 			jqrouter.go(goToURL);
+		} else if(!intialized){
+			otherwiseURL = goToURL;
 		}
 		return this
 	};
@@ -146,6 +148,10 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 	jqrouter.TRIGGER = debounce(function(arg){
 		intialized = true;
 		jqrouter.trigger(arg);
+		if(!$matched && otherwiseURL){
+			var _otherwiseURL = otherwiseURL; otherwiseURL = null;
+			jqrouter.go(_otherwiseURL);
+		}
 	});
 	
 	// Registers an event to be triggered
@@ -154,6 +160,7 @@ registerModule(this,'jqrouter', function(jqrouter, _jqrouter_){
 		// return this._callFun(key);
 		jqrouter.TRIGGER(arg);
 	};
+	
 	// process event queue
 	jqrouter.trigger = function(arg){
 		for ( var key in this.onchange_map) {
