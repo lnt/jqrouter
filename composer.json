@@ -1,5 +1,5 @@
 {
-    "name": "jqgeeks/jqrouter",
+    "name": "webmodules/jqrouter",
     "type": "utility",
     "description": "Simple UI URL Router",
     "keywords": ["javascript", "controller", "router"],
