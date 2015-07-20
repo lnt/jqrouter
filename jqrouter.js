@@ -1,4 +1,3 @@
-console.info("definig router")
 _define_('jqrouter', function(jqrouter){
 	
 	var JQROUTER = {};
@@ -30,14 +29,11 @@ _define_('jqrouter', function(jqrouter){
 			JQROUTER.invoke(hash);
 		}
 		if(_pathChange){
-			console.log("_pathChange",pathname);
 			JQROUTER.invoke(pathname.replace(contextPath,"/"));
 		}
 		if(_queryChange){
-			console.log("_queryChange",queryString);
 			JQROUTER.SET_PARAMS(URI.decode(queryString.slice(1)));
 		}
-		console.log("wee");
 	};
 	
 	var refineKey = function(_key){
@@ -126,7 +122,6 @@ _define_('jqrouter', function(jqrouter){
 	};
 	
 	JQROUTER.invoke = function(_key,args){
-		console.warn("invoke",arguments);
 		if(_key.indexOf("?") === 0){
 			JQROUTER.SET_PARAMS(URI.decode(_key.slice(1)));
 		} else {
@@ -146,7 +141,6 @@ _define_('jqrouter', function(jqrouter){
 	
 	//Globals Functions
 	JQROUTER.GO = debounce(function(url){
-		console.warn("GO",arguments);
 		var _url = url+"";
 		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url) : URI.clean(contextPath + url));
 		return window.history.pushState(null,null,goURL);
@@ -156,7 +150,6 @@ _define_('jqrouter', function(jqrouter){
 		window.location.href = (url!==undefined)?  URI.clean(contextPath + url) : window.location.href;
 	};
 	JQROUTER.SET_PARAM = function(key,value){
-		console.warn("SET_PARAM",arguments);
 		if(isChanged(key,value)){
 			hashData[key] = JSON.parse(JSON.stringify(value));
 			JQROUTER.CALL_PARAM_CHANGE(key)
@@ -175,7 +168,6 @@ _define_('jqrouter', function(jqrouter){
 		return retMap;
 	};
 	JQROUTER.SET_PARAMS = function(newHashData){
-		console.warn("SET_PARAMs",arguments);
 		hashData = {};
 		for(var key in newHashData){
 			if(isChanged(key,newHashData[key])){
@@ -186,10 +178,8 @@ _define_('jqrouter', function(jqrouter){
 		JQROUTER.GO("?"+URI.encode(hashData));
 	};
 	
-	console.warn("check");
 	when.ready(function(event) {
 	    var pushState = history.pushState;
-	    console.warn("wee");
 	    history.pushState = function(state) {
 	        if (typeof history.onpushstate == "function") {
 	           // history.onpushstate({state: state});
