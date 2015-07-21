@@ -1,9 +1,9 @@
 _define_('jqrouter', function(jqrouter){
 	
-	var JQROUTER = {};
+	var JQROUTER = {},jqr;
 	
 	var otherWise = true, $matched = false;
-	var pathname, hash, queryString, contextPath = "/",hashData = {},counter=0, intialized = false,otherwiseURL;
+	var pathname, hash, queryString,hashData = {},counter=0, intialized = false,otherwiseURL;
 	var HASH_PARAM_PREFIX = "#&";
 	JQROUTER.dead = {};
 	var hashchange = function(){
@@ -25,11 +25,12 @@ _define_('jqrouter', function(jqrouter){
 		if (_queryChange) {
 			queryString = document.location.search;
 		}
+		
 		if(_hashChange){
 			JQROUTER.invoke(hash);
 		}
 		if(_pathChange){
-			JQROUTER.invoke(pathname.replace(contextPath,"/"));
+			JQROUTER.invoke(pathname.replace(jqr.appContext,"/"));
 		}
 		if(_queryChange){
 			JQROUTER.SET_PARAMS(URI.decode(queryString.slice(1)));
@@ -37,7 +38,7 @@ _define_('jqrouter', function(jqrouter){
 	};
 	
 	var refineKey = function(_key){
-		//(contextPath + _key).replace(/[\/]+/g,'/')
+		//(jqr.appContext + _key).replace(/[\/]+/g,'/')
 		return (URI.clean(_key+"/")).replace(/\{(.*?)\}/gi,'$').replace("*","$");
 		return _key;// .replace(/\[/gi, '#').replace(/\]/gi, '');
 	};
@@ -117,10 +118,6 @@ _define_('jqrouter', function(jqrouter){
 		return (JSON.stringify(hashData[key]) !== JSON.stringify(value));
 	};
 	
-	JQROUTER._config_ = function(moduleConfig,appConfig){
-		contextPath = appConfig.contextPath;
-	};
-	
 	JQROUTER.invoke = function(_key,args){
 		if(_key.indexOf("?") === 0){
 			JQROUTER.SET_PARAMS(URI.decode(_key.slice(1)));
@@ -142,17 +139,17 @@ _define_('jqrouter', function(jqrouter){
 	//Globals Functions
 	JQROUTER.GO = debounce(function(url){
 		var _url = url+"";
-		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url) : URI.clean(contextPath + url));
+		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url) : URI.clean(jqr.appContext + url));
 		return window.history.pushState(null,null,goURL);
 	});
 	
 	JQROUTER.REOLOAD = function(url){
-		window.location.href = (url!==undefined)?  URI.clean(contextPath + url) : window.location.href;
+		window.location.href = (url!==undefined)?  URI.clean(jqr.appContext + url) : window.location.href;
 	};
 	JQROUTER.SET_PARAM = function(key,value){
 		if(isChanged(key,value)){
 			hashData[key] = JSON.parse(JSON.stringify(value));
-			JQROUTER.CALL_PARAM_CHANGE(key)
+			JQROUTER.CALL_PARAM_CHANGE(key);
 			JQROUTER.GO("?"+URI.encode(hashData));
 			return true;
 		} return false;
@@ -172,13 +169,14 @@ _define_('jqrouter', function(jqrouter){
 		for(var key in newHashData){
 			if(isChanged(key,newHashData[key])){
 				hashData[key] = JSON.parse(JSON.stringify(newHashData[key]));
-				JQROUTER.CALL_PARAM_CHANGE(key)
+				JQROUTER.CALL_PARAM_CHANGE(key);
 			}
 		}
 		JQROUTER.GO("?"+URI.encode(hashData));
 	};
 	
-	when.ready(function(event) {
+	JQROUTER.intialize = function(event) {
+		if(intialized) return;
 	    var pushState = history.pushState;
 	    history.pushState = function(state) {
 	        if (typeof history.onpushstate == "function") {
@@ -197,25 +195,38 @@ _define_('jqrouter', function(jqrouter){
 			hashchange();
 		};
 		hashchange();
-	});
+	};
+	
+	//when.ready(JQROUTER.intialize);
+	
+	JQROUTER._config_ = function(moduleConfig,appConfig){
+		jqr.start(appConfig.appContext);
+	};
 	
 	//APIS Starts from Here
-	return {
+	jqr =  {
 		ids : [],
 		paramEventIds : [],
 		$matched : false,
-		_instance_ : function(){
+		appContext : "/",
+		start : function(appContext){
+			jqr.appContext = appContext || jqr.appContext;
+			this.appContext = jqr.appContext; // jqr here and actual prototype are different so need to fix it
+			JQROUTER.intialize();
+		},
+		_instance_ : function(appContext){
+			this.appContext = appContext || jqr.appContext;
 			this.ids = [];
 			this.$matched = false;
 		},
 		instance : function(){
 			var ins = Object.create(this);
-			ins._instance_.apply(ins,arguments)
+			ins._instance_.apply(ins,arguments);
 			return ins;
 		},
 		on : function(__key, fun, isHTTP){
 			var __keys = (__key.indexOf("*")>-1) ? [__key.replace("*","{x}"),__key.replace("*","")] : [__key];
-			var isHASH = __key.indexOf("#")>-1
+			var isHASH = __key.indexOf("#")>-1;
 			var isQUERY = __key.indexOf("?")==0;
 			if(isQUERY){
 				var query = URI.decode(__key.slice(1));
@@ -249,7 +260,7 @@ _define_('jqrouter', function(jqrouter){
 					if(intialized){
 						JQROUTER._callFun(
 								isHASH ? refineKey(document.location.hash) :
-								refineKey(document.location.pathname).replace(contextPath,"/"),id);
+								refineKey(document.location.pathname).replace(this.appContext,"/"),id);
 						this.$matched = this.$matched || $matched;
 					}
 					this.ids.push(id);			
@@ -272,7 +283,7 @@ _define_('jqrouter', function(jqrouter){
 			} else if(!intialized){
 				otherwiseURL = goToURL;
 			}
-			return this
+			return this;
 		},
 		go : JQROUTER.GO,
 		reload : JQROUTER.REOLOAD,
@@ -282,4 +293,5 @@ _define_('jqrouter', function(jqrouter){
 		setParams : JQROUTER.SET_PARAMS
 	};
 	
+	return jqr;
 });
