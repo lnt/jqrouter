@@ -1,11 +1,12 @@
 {
-    "name": "webmodules/jqrouter",
-    "type": "utility",
-    "description": "Simple UI URL Router",
-    "keywords": ["javascript", "controller", "router"],
-    "license": "MIT",
-    
-    "require": {
-       "webmodules/foo": ">=0.0.0"
-    }
+	"name": "webmodules/jqrouter",
+	"type": "utility",
+	"description": "Simple UI URL Router",
+	"keywords": ["javascript", "controller", "router"],
+	"license": "MIT",
+
+	"require": {
+		"webmodules/jquery": ">=1.8",
+		"webmodules/foo": ">=0.0.0"
+	}
 }

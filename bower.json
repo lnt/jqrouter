@@ -12,7 +12,7 @@
     "jquery"
   ],
   "dependencies": {
-    "jquery": ">=1.8",
+    "webmodules-jquery": ">=1.8",
     "webmodules-foo" : ">=0.0.3"
   },
   "license": "MIT",
