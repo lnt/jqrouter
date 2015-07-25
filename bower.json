@@ -1,7 +1,6 @@
 {
   "name": "webmodules-jqrouter",
   "main": "jqrouter.js",
-  "version": "0.0.0",
   "authors": [
     "Lalit Tanwar <lalit.tanwar07@gmail.com>"
   ],
@@ -13,7 +12,7 @@
   ],
   "dependencies": {
     "webmodules-jquery": ">=1.8",
-    "webmodules-foo" : ">=0.0.3"
+    "webmodules-foo" : ">=2.0.2"
   },
   "license": "MIT",
   "ignore": [
