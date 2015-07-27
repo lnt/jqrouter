@@ -158,11 +158,15 @@ _define_('jqrouter', function(jqrouter){
 		return hashData[key] ===undefined ? defValue : JSON.parse(JSON.stringify(hashData[key]));
 	};
 	JQROUTER.GET_PARAMS = function(keyMap){
-		var retMap = {};
-		for(var key in keyMap){
-			retMap[key] = JQROUTER.GET_PARAM(key,keyMap[key]);
+		if(keyMap!==undefined){
+			var retMap = {};
+			for(var key in keyMap){
+				retMap[key] = JQROUTER.GET_PARAM(key,keyMap[key]);
+			}
+			return retMap;
+		} else {
+			return hashData;
 		}
-		return retMap;
 	};
 	JQROUTER.SET_PARAMS = function(newHashData){
 		hashData = {};
