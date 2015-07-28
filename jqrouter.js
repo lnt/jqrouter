@@ -79,13 +79,26 @@ _define_('jqrouter', function(jqrouter){
 					} else if(typeof this.fun[j].cb === 'function'){
 						otherWise = false;
 						$matched = true;
-						this.fun[j].cb.apply(JQROUTER,o.arg.concat([o.extraArg]));
+						//this.fun[j].cb.apply(JQROUTER,o.arg.concat([o.extraArg]));
+						o.arg.concat([o.extraArg]);
+						this.fun[j].cb.call(JQROUTER,new RouterEvent(o,this.fun[j]),this.fun[j].target,hashData);
 					}
 				}
 			}
 		}
 		return true;
 	};
+	
+	function RouterEvent(o,funJ){
+		this.args = {};
+		for(var i in funJ.paramKeys){
+			this.args[funJ.paramKeys[i]] = o.arg[i];
+		}
+		this.args = o.arg;
+		this.url = o.url;
+		this.urlEvent = funJ.url.replace(/\{\_\}/g,"*");
+	}
+	
 	JQROUTER.onchange_fun = {
 		next : JQROUTER.next,
 	};
@@ -110,7 +123,7 @@ _define_('jqrouter', function(jqrouter){
 	JQROUTER.trigger = function(arg){
 		for ( var key in this.onchange_map) {
 			var propagation = this._callFun(key,undefined,arg);
-			delete this.onchange_map[key]
+			delete this.onchange_map[key];
 		}
 	};
 	
@@ -218,18 +231,34 @@ _define_('jqrouter', function(jqrouter){
 			this.appContext = jqr.appContext; // jqr here and actual prototype are different so need to fix it
 			JQROUTER.intialize();
 		},
-		_instance_ : function(appContext){
-			this.appContext = appContext || jqr.appContext;
+		_instance_ : function(self,routerEvents){
 			this.ids = [];
 			this.$matched = false;
+			if(is.Object(self) && (routerEvents = routerEvents || self.routerEvents)){
+				this.bind(self,routerEvents);
+			}
 		},
 		instance : function(){
 			var ins = Object.create(this);
 			ins._instance_.apply(ins,arguments);
 			return ins;
 		},
-		on : function(__key, fun, isHTTP){
-			var __keys = (__key.indexOf("*")>-1) ? [__key.replace("*","{x}"),__key.replace("*","")] : [__key];
+		bind : function(self,routerEvents){
+			var rtr = this;
+			for(var i in routerEvents){
+				debounce(function(url,fName){
+					rtr.on(url,function(){
+						if(is.Function(self[fName])){
+							self[fName].apply(self,arguments);
+						} else if(is.Function(self["_routerEvents_"])){
+							self["_routerEvents_"].apply(self,arguments);
+						}
+					},fName);	
+				})(i,routerEvents[i]);
+			}
+		},
+		on : function(__key, fun, target){
+			var __keys = (__key.indexOf("*")>-1) ? [__key.replace("*","{_}"),__key.replace("*","")] : [__key];
 			var isHASH = __key.indexOf("#")>-1;
 			var isQUERY = __key.indexOf("?")==0;
 			if(isQUERY){
@@ -244,6 +273,9 @@ _define_('jqrouter', function(jqrouter){
 			} else {
 				for(var _i in __keys){
 					var _key = __keys[_i];
+					var paramKeys = (_key.match(/(\{([^}]+)\}|\*)/g)||[]).map(function(str){
+						return str.substring(1, str.length - 1);
+					});
 					var key = refineKey(_key);
 					var keys = splitURL(key);
 					var ref = JQROUTER.onchange_fun;
@@ -260,7 +292,7 @@ _define_('jqrouter', function(jqrouter){
 						ref = ref[_atKey];
 					}
 					var id = counter++;
-					ref.fun.push({ cb : fun, id : id, url : __keys[_i] });
+					ref.fun.push({ cb : fun, id : id, url : __keys[_i], paramKeys : paramKeys,target : target });
 					if(intialized){
 						JQROUTER._callFun(
 								isHASH ? refineKey(document.location.hash) :
@@ -291,11 +323,12 @@ _define_('jqrouter', function(jqrouter){
 		},
 		go : JQROUTER.GO,
 		reload : JQROUTER.REOLOAD,
-		getParam : JQROUTER.GET_PARAM,
-		setParam : JQROUTER.SET_PARAM,
-		getParams : JQROUTER.GET_PARAMS,
-		setParams : JQROUTER.SET_PARAMS
+		getQueryParam : JQROUTER.GET_PARAM,
+		setQueryParam : JQROUTER.SET_PARAM,
+		getQueryParams : JQROUTER.GET_PARAMS,
+		setQueryParams : JQROUTER.SET_PARAMS
 	};
 	
+	RouterEvent.prototype = jqr;
 	return jqr;
 });
