@@ -81,7 +81,7 @@ _define_('jqrouter', function(jqrouter){
 						$matched = true;
 						//this.fun[j].cb.apply(JQROUTER,o.arg.concat([o.extraArg]));
 						o.arg.concat([o.extraArg]);
-						this.fun[j].cb.call(JQROUTER,new RouterEvent(o,this.fun[j]),this.fun[j].target,hashData);
+						this.fun[j].cb.call(JQROUTER,new RouterEvent(o,this.fun[j]),this.fun[j].target||o.url,hashData);
 					}
 				}
 			}
@@ -90,9 +90,9 @@ _define_('jqrouter', function(jqrouter){
 	};
 	
 	function RouterEvent(o,funJ){
-		this.args = {};
+		this.params = {};
 		for(var i in funJ.paramKeys){
-			this.args[funJ.paramKeys[i]] = o.arg[i];
+			this.params[funJ.paramKeys[i]] = o.arg[i];
 		}
 		this.args = o.arg;
 		this.url = o.url;
