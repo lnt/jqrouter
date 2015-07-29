@@ -226,6 +226,7 @@ _define_('jqrouter', function(jqrouter){
 		paramEventIds : [],
 		$matched : false,
 		appContext : "/",
+		routerBase : "",
 		start : function(appContext){
 			jqr.appContext = appContext || jqr.appContext;
 			this.appContext = jqr.appContext; // jqr here and actual prototype are different so need to fix it
@@ -234,6 +235,7 @@ _define_('jqrouter', function(jqrouter){
 		_instance_ : function(self,routerEvents){
 			this.ids = [];
 			this.$matched = false;
+			this.routerBase = self.routerBase || this.routerBase;
 			if(is.Object(self) && (routerEvents = routerEvents || self.routerEvents)){
 				this.bind(self,routerEvents);
 			}
@@ -272,7 +274,7 @@ _define_('jqrouter', function(jqrouter){
 				}
 			} else {
 				for(var _i in __keys){
-					var _key = __keys[_i];
+					var _key = URI.clean(this.routerBase + __keys[_i]);
 					var paramKeys = (_key.match(/(\{([^}]+)\}|\*)/g)||[]).map(function(str){
 						return str.substring(1, str.length - 1);
 					});
