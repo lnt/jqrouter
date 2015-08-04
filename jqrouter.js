@@ -152,7 +152,7 @@ _define_('jqrouter', function(jqrouter){
 	//Globals Functions
 	JQROUTER.GO = debounce(function(url){
 		var _url = url+"";
-		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url) : URI.clean(jqr.appContext + url));
+		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url+hash) : URI.clean(jqr.appContext + url));
 		return window.history.pushState(null,null,goURL);
 	});
 	
