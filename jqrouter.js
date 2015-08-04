@@ -200,10 +200,14 @@ _define_('jqrouter', function(jqrouter){
 	           // history.onpushstate({state: state});
 	        }
 	        var ret;
-	        if((arguments[2]+"").indexOf("#") === 0){
-	        	window.location.hash = arguments[2];
-	        } else {
-	        	ret = pushState.apply(history, arguments);
+	        try{
+		        if((arguments[2]+"").indexOf("#") === 0){
+		        	window.location.hash = arguments[2];
+		        } else {
+		        	ret = pushState.apply(history, arguments);
+		        }
+	        } catch (e){
+	        	console.error("JQROUTER::",e);
 	        }
 	        hashchange();
 	        return ret;
