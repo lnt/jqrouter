@@ -227,6 +227,7 @@ _define_('jqrouter', function(jqrouter){
 		$matched : false,
 		appContext : "/",
 		routerBase : "",
+		__bindStack__ : 0,
 		start : function(appContext){
 			jqr.appContext = appContext || jqr.appContext;
 			this.appContext = jqr.appContext; // jqr here and actual prototype are different so need to fix it
@@ -235,7 +236,9 @@ _define_('jqrouter', function(jqrouter){
 		_instance_ : function(self,routerEvents){
 			this.ids = [];
 			this.$matched = false;
-			this.routerBase = self.routerBase || this.routerBase;
+			if(self){
+				this.routerBase = self.routerBase || this.routerBase;
+			}
 			if(is.Object(self) && (routerEvents = routerEvents || self.routerEvents)){
 				this.bind(self,routerEvents);
 			}
@@ -248,6 +251,7 @@ _define_('jqrouter', function(jqrouter){
 		bind : function(self,routerEvents){
 			var rtr = this;
 			for(var i in routerEvents){
+				rtr.__bindStack__++;
 				debounce(function(url,fName){
 					rtr.on(url,function(){
 						if(is.Function(self[fName])){
@@ -256,7 +260,17 @@ _define_('jqrouter', function(jqrouter){
 							self["_routerEvents_"].apply(self,arguments);
 						}
 					},fName);	
+					rtr.__bindStack__--;
+					rtr.onbind();
 				})(i,routerEvents[i]);
+			}
+		},
+		onbind : function(cb){
+			if(is.Function(cb)){
+				this.__bindStackFunction__ = cb;
+			}
+			if(is.Function(this.__bindStackFunction__) && this.__bindStack__ == 0){
+				this.__bindStackFunction__(this)
 			}
 		},
 		on : function(__key, fun, target){
@@ -316,12 +330,15 @@ _define_('jqrouter', function(jqrouter){
 			}
 		},
 		otherwise : function(goToURL){
-			if(intialized && (otherWise || !this.$matched)){
-				JQROUTER.GO(goToURL);
-			} else if(!intialized){
-				otherwiseURL = goToURL;
-			}
-			return this;
+			var self = this;
+			this.onbind(function(){
+				if(intialized && (otherWise || !self.$matched)){
+					JQROUTER.GO(goToURL);
+				} else if(!intialized){
+					otherwiseURL = goToURL;
+				}
+			});
+			return self;
 		},
 		go : JQROUTER.GO,
 		reload : JQROUTER.REOLOAD,
