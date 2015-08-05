@@ -2,7 +2,7 @@ _define_('jqrouter', function(jqrouter){
 	
 	var JQROUTER = {},jqr;
 	
-	var otherWise = true, $matched = false;
+	var otherWise = true, $matched = false,$matched_any = false;
 	var pathname, hash, queryString,hashData = {},counter=0, intialized = false,otherwiseURL;
 	var HASH_PARAM_PREFIX = "#&";
 	JQROUTER.dead = {};
@@ -271,10 +271,11 @@ _define_('jqrouter', function(jqrouter){
 		},
 		onbind : function(cb){
 			if(is.Function(cb)){
-				this.__bindStackFunction__ = cb;
+				this.__bindStackFunction__ = debounce(cb);
 			}
 			if(is.Function(this.__bindStackFunction__) && this.__bindStack__ == 0){
-				this.__bindStackFunction__(this)
+				this.__bindStackFunction__(this);
+				this.__bindStackFunction__ = undefined;
 			}
 		},
 		on : function(__key, fun, target){
@@ -319,6 +320,7 @@ _define_('jqrouter', function(jqrouter){
 								refineKey(document.location.pathname).replace(this.appContext,"/"),id);
 						this.$matched = this.$matched || $matched;
 					}
+					$matched_any = $matched_any || $matched;
 					this.ids.push(id);			
 				}
 	
@@ -336,7 +338,7 @@ _define_('jqrouter', function(jqrouter){
 		otherwise : function(goToURL){
 			var self = this;
 			this.onbind(function(){
-				if(intialized && (otherWise || !self.$matched)){
+				if(intialized && (otherWise || !self.$matched) && !$matched_any){
 					JQROUTER.GO(goToURL);
 				} else if(!intialized){
 					otherwiseURL = goToURL;
