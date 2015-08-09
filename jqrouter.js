@@ -268,6 +268,7 @@ _define_('jqrouter', function(jqrouter){
 					rtr.onbind();
 				})(i,routerEvents[i]);
 			}
+			return this;
 		},
 		onbind : function(cb){
 			if(is.Function(cb)){
