@@ -150,10 +150,14 @@ _define_('jqrouter', function(jqrouter){
 	});
 	
 	//Globals Functions
-	JQROUTER.GO = debounce(function(url){
+	JQROUTER.GO = debounce(function(url,params){
 		var _url = url+"";
 		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url+hash) : URI.clean(jqr.appContext + url));
-		return window.history.pushState(null,null,goURL);
+    var x = window.history.pushState(null,null,goURL);
+    if(is.Object(params)){
+      JQROUTER.SET_PARAMS(params);
+    }
+		return x;
 	});
 	
 	JQROUTER.REOLOAD = function(url){
