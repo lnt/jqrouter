@@ -257,23 +257,23 @@ _define_('jqrouter', function(jqrouter){
 			return ins;
 		},
 		bind : function(self,routerEvents){
-			var rtr = this;
-      rtr.routerEvents = routerEvents || rtr.routerEvents;
-			for(var i in rtr.routerEvent){
+      var rtr = this;
+      var _routerEvents = routerEvents || self.routerEvents;
+      for(var i in _routerEvents){
         rtr.__bindStack__++;
-				debounce(function(url,fName){
-					rtr.on(url,function(){
-						if(is.Function(self[fName])){
-							self[fName].apply(self,arguments);
-						} else if(is.Function(self["_routerEvents_"])){
-							self["_routerEvents_"].apply(self,arguments);
-						}
-					},fName);	
-					rtr.__bindStack__--;
-					rtr.onbind();
-				})(i,rtr.routerEvent[i]);
-			}
-			return this;
+        debounce(function(url,fName){
+          rtr.on(url,function(){
+            if(is.Function(self[fName])){
+              self[fName].apply(self,arguments);
+            } else if(is.Function(self["_routerEvents_"])){
+              self["_routerEvents_"].apply(self,arguments);
+            }
+          },fName);
+          rtr.__bindStack__--;
+          rtr.onbind();
+        })(i,_routerEvents[i]);
+      }
+      return this;
 		},
 		onbind : function(cb){
 			if(is.Function(cb)){
