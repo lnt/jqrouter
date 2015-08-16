@@ -247,7 +247,7 @@ _define_('jqrouter', function(jqrouter){
 			if(self){
 				this.routerBase = self.routerBase || this.routerBase;
 			}
-			if(is.Object(self) && (routerEvents = routerEvents || self.routerEvents)){
+			if(is.Object(self)){
 				this.bind(self,routerEvents);
 			}
 		},
@@ -258,8 +258,9 @@ _define_('jqrouter', function(jqrouter){
 		},
 		bind : function(self,routerEvents){
 			var rtr = this;
-			for(var i in routerEvents){
-				rtr.__bindStack__++;
+      rtr.routerEvents = routerEvents || rtr.routerEvents;
+			for(var i in rtr.routerEvent){
+        rtr.__bindStack__++;
 				debounce(function(url,fName){
 					rtr.on(url,function(){
 						if(is.Function(self[fName])){
@@ -270,7 +271,7 @@ _define_('jqrouter', function(jqrouter){
 					},fName);	
 					rtr.__bindStack__--;
 					rtr.onbind();
-				})(i,routerEvents[i]);
+				})(i,rtr.routerEvent[i]);
 			}
 			return this;
 		},
