@@ -1,9 +1,13 @@
 {
-	"name": "webmodules/jqrouter",
-	"webmodules/jqrouter": {
-		"js": ["jqrouter.js"],
-		"on": ["webmodules/foo", "webmodules/foo/uri"]
-	}
+  "name": "webmodules/jqrouter",
+  "webmodules/jqrouter": {
+    "js": ["jqrouter.js"],
+    "on": ["webmodules/foo", "webmodules/foo/uri"]
+  },
+  "webmodules/jqrouter/test": {
+    "js": ["test/jqrouter.test.js"],
+    "on": ["webmodules/jqrouter"]
+  }
 }
 
 
