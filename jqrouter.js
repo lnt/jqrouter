@@ -199,7 +199,14 @@ _define_('jqrouter', function(jqrouter){
 	JQROUTER.intialize = function(event) {
 		if(intialized) return;
 	    var pushState = history.pushState;
-	    history.pushState = function(state) {
+	    history.pushState = function(state,a,b,c) {
+          var newURL = new URL("http://localhost:8080"+b)
+          if(newURL.pathname === window.location.pathname
+           && newURL.search === window.location.search
+           && newURL.hash === window.location.hash){
+            return false;
+          }
+
 	        if (typeof history.onpushstate == "function") {
 	           // history.onpushstate({state: state});
 	        }
