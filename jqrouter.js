@@ -359,12 +359,12 @@ _define_('jqrouter', function(jqrouter){
 			});
 			return self;
 		},
-    defaultRoute : function(goToURL){
+    defaultRoute : debounce(function(goToURL){
       if(!this.$matched){
         this.go(goToURL);
       }
       return this;
-    },
+    }),
 		go : JQROUTER.GO,
 		reload : JQROUTER.REOLOAD,
 		getQueryParam : JQROUTER.GET_PARAM,
