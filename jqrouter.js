@@ -214,12 +214,14 @@ _define_('jqrouter', function(jqrouter){
 	           // history.onpushstate({state: state});
 	        }
 	        var ret;
-          postState = state;
+          if(newURL.pathname !== window.location.pathname){
+            postState = state;
+          }
 	        try{
 		        if((arguments[2]+"").indexOf("#") === 0){
 		        	window.location.hash = arguments[2];
 		        } else {
-		        	ret = pushState.apply(history, arguments);
+		        	ret = pushState.apply(history, [postState,a,b,c]);
 		        }
 	        } catch (e){
 	        	console.error("JQROUTER::",e);
@@ -228,7 +230,7 @@ _define_('jqrouter', function(jqrouter){
 	        return ret;
 	    };
 		window.onpopstate = history.onpushstate = function(e,a,b,c) {
-      //console.log("onpopstate",e,a,b,c);
+      console.log("onpopstate",e,a,b,c);
       postState = e.state || {};
 			hashchange();
 		};
