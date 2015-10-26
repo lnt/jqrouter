@@ -3,7 +3,7 @@ _define_('jqrouter', function(jqrouter){
 	var JQROUTER = {},jqr;
 	
 	var otherWise = true, $matched = false,$matched_any = false;
-	var pathname, hash, queryString,hashData = {},counter=0, intialized = false,otherwiseURL;
+	var pathname, hash, queryString,hashData = {},counter=0, intialized = false,otherwiseURL,postState;
 	var HASH_PARAM_PREFIX = "#&";
 	JQROUTER.dead = {};
 	var hashchange = function(){
@@ -81,7 +81,7 @@ _define_('jqrouter', function(jqrouter){
 						$matched = true;
 						//this.fun[j].cb.apply(JQROUTER,o.arg.concat([o.extraArg]));
 						o.arg.concat([o.extraArg]);
-						this.fun[j].cb.call(JQROUTER,new RouterEvent(o,this.fun[j]),this.fun[j].target||o.url,hashData);
+						this.fun[j].cb.call(JQROUTER,new RouterEvent(o,this.fun[j]),this.fun[j].target||o.url,hashData,postState);
 					}
 				}
 			}
@@ -100,7 +100,7 @@ _define_('jqrouter', function(jqrouter){
 	}
 	
 	JQROUTER.onchange_fun = {
-		next : JQROUTER.next,
+		next : JQROUTER.next
 	};
 	
 	JQROUTER.TRIGGER = debounce(function(arg){
@@ -150,10 +150,10 @@ _define_('jqrouter', function(jqrouter){
 	});
 	
 	//Globals Functions
-	JQROUTER.GO = debounce(function(url,params){
+	JQROUTER.GO = debounce(function(url,params, postData){
 		var _url = url+"";
 		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url+hash) : URI.clean(jqr.appContext + url));
-    var x = window.history.pushState(null,null,goURL);
+    var x = window.history.pushState(postData ||  {},null,goURL);
     if(is.Object(params)){
       JQROUTER.SET_PARAMS(params);
     }
@@ -211,6 +211,7 @@ _define_('jqrouter', function(jqrouter){
 	           // history.onpushstate({state: state});
 	        }
 	        var ret;
+          postState = state;
 	        try{
 		        if((arguments[2]+"").indexOf("#") === 0){
 		        	window.location.hash = arguments[2];
@@ -223,7 +224,9 @@ _define_('jqrouter', function(jqrouter){
 	        hashchange();
 	        return ret;
 	    };
-		window.onpopstate = history.onpushstate = function(e) {
+		window.onpopstate = history.onpushstate = function(e,a,b,c) {
+      //console.log("onpopstate",e,a,b,c);
+      postState = e.state || {};
 			hashchange();
 		};
 		hashchange();
@@ -234,7 +237,15 @@ _define_('jqrouter', function(jqrouter){
 	JQROUTER._config_ = function(moduleConfig,appConfig){
 		jqr.start(appConfig.appContext);
 	};
-	
+
+  var whichDefined = function(){
+      var vars = arguments;
+      for(var i =0; i<vars.length;i++){
+        if(is.Value(vars[i])) return vars[i];
+      }
+    return undefined;
+  };
+
 	//APIS Starts from Here
 	jqr =  {
 		ids : [],
@@ -366,11 +377,66 @@ _define_('jqrouter', function(jqrouter){
       return this;
     }),
 		go : JQROUTER.GO,
+    post : function(a,b,c){ return JQROUTER.GO(a,c,b);},
 		reload : JQROUTER.REOLOAD,
 		getQueryParam : JQROUTER.GET_PARAM,
 		setQueryParam : JQROUTER.SET_PARAM,
 		getQueryParams : JQROUTER.GET_PARAMS,
-		setQueryParams : JQROUTER.SET_PARAMS
+		setQueryParams : JQROUTER.SET_PARAMS,
+    getPostParam : function(key){
+       return (postState || {})[key];
+    },
+    getPostParams : function(key){
+      return postState || {};
+    },
+    _ready_ : function(){
+      var ijqr = this;
+      //console.error("_ready_",jQuery)
+      var routerQueryParamChange = function (e, target) {
+        var target = e.target;
+        var param = target.getAttribute("jqr-"+ e.type+"-param");
+        if (param) {
+          ijqr.setQueryParam(param, whichDefined(target.getAttribute("jqr-value"),target.value, target.getAttribute("value")));
+        }
+      };
+      var routerQueryParamUpdate = function (e, target) {
+        var param = target.getAttribute("jqr-"+ e.type+"-params");
+        if (param) {
+          var selectedVal = whichDefined(target.getAttribute("jqr-value"),target.value, target.getAttribute("value"));
+          var selected = ijqr.getQueryParam(param) || [];
+          var pos = selected.indexOf(selectedVal);
+        }
+        if (pos == -1) {
+          selected.push(selectedVal);
+        } else {
+          selected.splice(pos, 1);
+        }
+        ijqr.setQueryParam(param, selected);
+        if(target.tagName.toUpperCase() == "A"){
+          return preventPropagation(e);
+        }
+      };
+      window.jQuery("body").on("click","[jqr-click-param]", routerQueryParamChange);
+      window.jQuery("body").on("change","[jqr-change-param]", routerQueryParamChange);
+
+      window.jQuery("body").on("click","[jqr-click-params]", routerQueryParamUpdate);
+      window.jQuery("body").on("change","[jqr-change-params]", routerQueryParamUpdate);
+
+      window.jQuery("body").on("click","[jqr-go],[jqr-post]", function(e){
+        var target = e.target;
+        var link = whichDefined(
+            target.getAttribute("jqr-go") || undefined,
+            target.getAttribute("jqr-post") || undefined,
+            target.getAttribute("href"));
+        var isPost = target.hasAttribute("jqr-post");
+        if (link) {
+          jqrouter[isPost ? "post" : "go"](link, jQuery(target).data());
+        }
+        if(target.tagName.toUpperCase() == "A"){
+          return preventPropagation(e);
+        }
+      });
+    }
 	};
 	
 	RouterEvent.prototype = jqr;

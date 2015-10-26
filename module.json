@@ -2,7 +2,7 @@
   "name": "webmodules/jqrouter",
   "webmodules/jqrouter": {
     "js": ["jqrouter.js"],
-    "on": ["webmodules/foo", "webmodules/foo/uri"]
+    "on": ["webmodules/foo", "webmodules/foo/uri","webmodules/jquery"]
   },
   "webmodules/jqrouter/test": {
     "js": ["test/jqrouter.test.js"],
