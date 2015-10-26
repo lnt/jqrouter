@@ -161,6 +161,9 @@ _define_('jqrouter', function(jqrouter){
 	});
 	
 	JQROUTER.REOLOAD = function(url){
+    if(url === undefined){
+      return  window.location.reload();
+    }
 		window.location.href = (url!==undefined)?  URI.clean(jqr.appContext + url) : window.location.href;
 	};
 	JQROUTER.SET_PARAM = function(key,value){
