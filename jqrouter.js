@@ -153,11 +153,12 @@ _define_('jqrouter', function(jqrouter){
 	JQROUTER.GO = debounce(function(url,params, postData){
 		var _url = url+"";
 		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url+hash) : URI.clean(jqr.appContext + url));
-    var x = window.history.pushState(postData ||  {},null,goURL);
+
     if(!is.Empty(params)){
-      JQROUTER.SET_PARAMS(params);
+      JQROUTER.SET_PARAMS(params, goURL,postData);
+    } else {
+      return window.history.pushState(postData ||  {},null,goURL);
     }
-		return x;
 	});
 	
 	JQROUTER.REOLOAD = function(url){
@@ -188,7 +189,7 @@ _define_('jqrouter', function(jqrouter){
 			return hashData;
 		}
 	};
-	JQROUTER.SET_PARAMS = function(newHashData){
+	JQROUTER.SET_PARAMS = function(newHashData, goUrl, postData){
 		hashData = {};
 		for(var key in newHashData){
 			if(isChanged(key,newHashData[key])){
@@ -196,7 +197,14 @@ _define_('jqrouter', function(jqrouter){
 				JQROUTER.CALL_PARAM_CHANGE(key);
 			}
 		}
-		JQROUTER.GO("?"+URI.encode(hashData));
+    if(goUrl == undefined){
+      JQROUTER.GO("?"+URI.encode(hashData), undefined, postData);
+    } else {
+      var info = URI.info(goUrl);
+      //if(goUrl.indexOf("?"==0)){
+        JQROUTER.GO(pathname+"?"+URI.encode(hashData)+info.hash, undefined,postData);
+      //}
+    }
 	};
 	
 	JQROUTER.intialize = function(event) {
