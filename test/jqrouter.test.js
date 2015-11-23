@@ -13,6 +13,8 @@ define({
         x : "X",
         y : ["Y1","Y2"]
       })
+      this.$$.loadTemplate(this.path("jqrouter.test.html"));
+
     },
     _remove_: function () {
 

@@ -154,7 +154,7 @@ _define_('jqrouter', function(jqrouter){
 		var _url = url+"";
 		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url+hash) : URI.clean(jqr.appContext + url));
     var x = window.history.pushState(postData ||  {},null,goURL);
-    if(is.Object(params)){
+    if(!is.Empty(params)){
       JQROUTER.SET_PARAMS(params);
     }
 		return x;
@@ -428,7 +428,7 @@ _define_('jqrouter', function(jqrouter){
       window.jQuery("body").on("change","[jqr-change-params]", routerQueryParamUpdate);
 
       window.jQuery("body").on("click","[jqr-go],[jqr-post]", function(e){
-        var target = e.target;
+        var target = this;
         var link = whichDefined(
             target.getAttribute("jqr-go") || undefined,
             target.getAttribute("jqr-post") || undefined,
