@@ -141,13 +141,22 @@ _define_('jqrouter', function(jqrouter){
 	};
 	
 	var paramEvents = {};
-	JQROUTER.CALL_PARAM_CHANGE = debounce(function(keyname){
-		for(var i in paramEvents){
-			if(paramEvents[i] && paramEvents[i].name == keyname && is.Function(paramEvents[i].fun)){
-				paramEvents[i].fun(keyname,hashData[keyname]);
-			}
-		}
-	});
+  var KEYNAME_LIST = {};
+  JQROUTER.CALL_PARAM_CHANGE = function(keyname,xtr){
+    KEYNAME_LIST[keyname] = keyname;
+    JQROUTER.CALL_PARAM_CHANGE_DO();
+  };
+
+  JQROUTER.CALL_PARAM_CHANGE_DO = debounce(function(){
+    for(var i in paramEvents){
+      var keyname = paramEvents[i] && paramEvents[i].name;
+      if(KEYNAME_LIST[keyname] && is.Function(paramEvents[i].fun)){
+        paramEvents[i].fun(keyname,hashData[keyname]);
+      }
+      delete KEYNAME_LIST[keyname];
+    }
+  });
+
 	
 	//Globals Functions
 	JQROUTER.GO = debounce(function(url,params, postData){
@@ -157,6 +166,15 @@ _define_('jqrouter', function(jqrouter){
     if(!is.Empty(params)){
       JQROUTER.SET_PARAMS(params, goURL,postData);
     } else {
+//      if(_url.indexOf("?") === 0){
+//        var newHashData = URI.decode(_url.slice(1));
+//        for(var key in newHashData){
+//          if(isChanged(key,newHashData[key])){
+//            hashData[key] = JSON.parse(JSON.stringify(newHashData[key]));
+//            JQROUTER.CALL_PARAM_CHANGE(key,"GO");
+//          }
+//        }
+//      }
       return window.history.pushState(postData ||  {},null,goURL);
     }
 	});
