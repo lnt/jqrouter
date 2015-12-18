@@ -153,8 +153,8 @@ _define_('jqrouter', function(jqrouter){
       if(KEYNAME_LIST[keyname] && is.Function(paramEvents[i].fun)){
         paramEvents[i].fun(keyname,hashData[keyname]);
       }
-      delete KEYNAME_LIST[keyname];
     }
+    KEYNAME_LIST[keyname] = {};
   });
 
 	
