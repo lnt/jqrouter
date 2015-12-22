@@ -196,17 +196,17 @@ _define_('jqrouter', function(jqrouter){
 	JQROUTER.GET_PARAM = function(key,defValue){
 		return hashData[key] ===undefined ? defValue : JSON.parse(JSON.stringify(hashData[key]));
 	};
-	JQROUTER.GET_PARAMS = function(keyMap){
-		if(keyMap!==undefined){
-			var retMap = {};
-			for(var key in keyMap){
-				retMap[key] = JQROUTER.GET_PARAM(key,keyMap[key]);
-			}
-			return retMap;
-		} else {
-			return hashData;
-		}
-	};
+  JQROUTER.GET_PARAMS = function(keyMap){
+    if(keyMap!==undefined){
+      var retMap = {};
+      for(var key in keyMap){
+        retMap[key] = JQROUTER.GET_PARAM(key,keyMap[key]);
+      }
+      return JSON.parse(JSON.stringify(retMap));
+    } else {
+      return JSON.parse(JSON.stringify(hashData));
+    }
+  };
 	JQROUTER.SET_PARAMS = function(newHashData, goUrl, postData){
 		hashData = {};
 		for(var key in newHashData){
