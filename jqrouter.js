@@ -154,7 +154,7 @@ _define_('jqrouter', function(jqrouter){
         paramEvents[i].fun(keyname,hashData[keyname]);
       }
     }
-    KEYNAME_LIST[keyname] = {};
+    KEYNAME_LIST = {};
   });
 
 	
@@ -208,7 +208,9 @@ _define_('jqrouter', function(jqrouter){
     }
   };
 	JQROUTER.SET_PARAMS = function(newHashData, goUrl, postData){
-		hashData = {};
+		if(goUrl!==undefined) {
+      hashData = {};
+    }
 		for(var key in newHashData){
 			if(isChanged(key,newHashData[key])){
 				hashData[key] = JSON.parse(JSON.stringify(newHashData[key]));
