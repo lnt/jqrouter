@@ -241,6 +241,9 @@ _define_('jqrouter', function(jqrouter){
 		        if((arguments[2]+"").indexOf("#") === 0){
 		          window.location.hash = arguments[2];
 		        } else {
+              if(!newURL.hash && newURL.pathname === window.location.pathname){
+                b = b + window.location.hash;
+              }
 		        	ret = pushState.apply(history, [postState,a,b,c,silent]);
 		        }
 	        } catch (e){
