@@ -422,14 +422,15 @@ _define_('jqrouter', function(jqrouter){
     _ready_ : function(){
       var ijqr = this;
       //console.error("_ready_",jQuery)
-      var routerQueryParamChange = function (e, target) {
-        var target = e.target;
+      var routerQueryParamChange = function (e, _target) {
+        var target = e.target || _target;
         var param = target.getAttribute("jqr-"+ e.type+"-param");
         if (param) {
           ijqr.setQueryParam(param, whichDefined(target.getAttribute("jqr-value"),target.value, target.getAttribute("value")));
         }
       };
-      var routerQueryParamUpdate = function (e, target) {
+      var routerQueryParamUpdate = function (e, _target) {
+	var target = e.target || _target;
         var param = target.getAttribute("jqr-"+ e.type+"-params");
         if (param) {
           var selectedVal = whichDefined(target.getAttribute("jqr-value"),target.value, target.getAttribute("value"));
