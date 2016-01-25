@@ -429,8 +429,16 @@ _define_('jqrouter', function(jqrouter){
           ijqr.setQueryParam(param, whichDefined(target.getAttribute("jqr-value"),target.value, target.getAttribute("value")));
         }
       };
+
+     var routerQueryParamDataUpdate =  function(e, _target){
+       var target = e.target || _target;
+       var data = target.dataset;
+       if (!is.Empty(data)) {
+         ijqr.setQueryParams(data);
+       }
+     };
       var routerQueryParamUpdate = function (e, _target) {
-	var target = e.target || _target;
+	      var target = e.target || _target;
         var param = target.getAttribute("jqr-"+ e.type+"-params");
         if (param) {
           var selectedVal = whichDefined(target.getAttribute("jqr-value"),target.value, target.getAttribute("value"));
@@ -452,6 +460,9 @@ _define_('jqrouter', function(jqrouter){
 
       window.jQuery("body").on("click","[jqr-click-params]", routerQueryParamUpdate);
       window.jQuery("body").on("change","[jqr-change-params]", routerQueryParamUpdate);
+
+      window.jQuery("body").on("click","[jqr-click-data]", routerQueryParamDataUpdate);
+      window.jQuery("body").on("change","[jqr-change-data]", routerQueryParamDataUpdate);
 
       window.jQuery("body").on("click","[jqr-go],[jqr-post]", function(e){
         var target = this;
