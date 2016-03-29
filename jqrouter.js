@@ -1,24 +1,53 @@
 _define_('jqrouter', function(jqrouter){
 	
 	var JQROUTER = {},jqr;
-	
 	var otherWise = true, $matched = false,$matched_any = false;
-	var pathname, hash, queryString,hashData = {},counter=0, intialized = false,otherwiseURL,postState;
-	var HASH_PARAM_PREFIX = "#&";
+	var pathname, hash, queryString,hashData = {},counter=0, intialized = false,otherwiseURL,postState, hashState,hashStateData = {};
+	var HASH_PARAM_PREFIX = "?!";
 	JQROUTER.dead = {};
+  var getHash = function(){
+    return document.location.hash.split(HASH_PARAM_PREFIX)[0];
+  };
+  var getState = function(){
+    return document.location.hash.split(HASH_PARAM_PREFIX)[1] || "";
+  };
+  var setState = function(value){
+    if(jqr.STATE_ENABLED){
+      var newHash = getHash() + HASH_PARAM_PREFIX + value;
+      return document.location.hash = newHash;
+    }
+  };
+  var setHash = function(value){
+    var newHash = value + appendState();
+    return document.location.hash = newHash;
+  };
+
+  var appendState =function(){
+    return (jqr.STATE_ENABLED ? (HASH_PARAM_PREFIX + hashState) : "");
+  };
+
+  window.onhashchange = function(){
+    hashState = window.btoa(JSON.stringify(hashStateData));
+    setState(hashState);
+  };
+
 	var hashchange = function(){
-		var _hashChange = (hash != document.location.hash);
+		var _hashChange = (hash != getHash());
 		var _pathChange = (pathname != document.location.pathname &&
 				(true || (document.location.pathname.length>0 && document.location.pathname.indexOf(pathname)!=0))
 		);
 		var _queryChange = (queryString!=document.location.search);
+    var _hashStateChange = (hashState!=getState());
 		otherWise = true;
 		/*
 		 * Need to change URL first as it may trigger twice in between
 		 */
 		if (_hashChange) {
-			hash = document.location.hash;
+			hash = getHash();
 		}
+    if(_hashStateChange){
+      hashState = getState();
+    }
 		if (_pathChange) {
 			pathname = document.location.pathname;
 		}
@@ -35,6 +64,7 @@ _define_('jqrouter', function(jqrouter){
 		if(_queryChange){
 			JQROUTER.SET_PARAMS(URI.decode(queryString.slice(1)),_pathChange ? pathname.replace(jqr.appContext,"/") : undefined);
 		}
+    setState(hashState);
 	};
 	
 	var refineKey = function(_key){
@@ -217,7 +247,7 @@ _define_('jqrouter', function(jqrouter){
       //}
     }
 	};
-	
+	var LAST_URL;
 	JQROUTER.intialize = function(event) {
 		if(intialized) return;
 	    var pushState = history.pushState;
@@ -226,7 +256,7 @@ _define_('jqrouter', function(jqrouter){
           var newURL = new URL("http://localhost:8080"+b)
           if(newURL.pathname === window.location.pathname
            && newURL.search === window.location.search
-           && newURL.hash === window.location.hash){
+           && newURL.hash === getHash()){
             return false;
           }
 
@@ -239,12 +269,16 @@ _define_('jqrouter', function(jqrouter){
           }
 	        try {
 		        if((arguments[2]+"").indexOf("#") === 0){
-		          window.location.hash = arguments[2];
+              setHash(arguments[2]);
 		        } else {
               if(!newURL.hash && newURL.pathname === window.location.pathname){
-                b = b + window.location.hash;
+                b = b + getHash() + appendState();
               }
-		        	ret = pushState.apply(history, [postState,a,b,c,silent]);
+              b = (b||"").trim()
+              if(LAST_URL != b){
+                LAST_URL = b;
+                ret = pushState.apply(history, [postState,a,b,c,silent]);
+              }
 		        }
 	        } catch (e){
 	        	console.error("JQROUTER::",e);
@@ -255,11 +289,11 @@ _define_('jqrouter', function(jqrouter){
 	        return ret;
 	    };
 		window.onpopstate = history.onpushstate = function(e,a,b,c) {
-      console.log("onpopstate",e,a,b,c);
       postState = e.state || {};
 			hashchange();
 		};
 		hashchange();
+    hashStateData = hashState ? JSON.parse(window.atob(hashState)) : {};
 	};
 	
 	//when.ready(JQROUTER.intialize);
@@ -278,6 +312,7 @@ _define_('jqrouter', function(jqrouter){
 
 	//APIS Starts from Here
 	jqr =  {
+    STATE_ENABLED : false,
 		ids : [],
 		paramEventIds : [],
 		$matched : false,
@@ -292,6 +327,23 @@ _define_('jqrouter', function(jqrouter){
 		_instance_ : function(self,routerEvents){
 			this.ids = [];
 			this.$matched = false;
+      this._state_ = {
+        _ : {},
+        name : undefined,
+        set :  function(key, value){
+          if(value!==undefined){
+            this._[key] = value;
+            hashStateData[this.name] = this._;
+            setState(btoa(JSON.stringify(hashStateData)));
+          }
+          return  this._[key];
+        },get : function(key, defValue){
+          if(this._[key]==undefined && defValue!==undefined){
+            this.set(key,defValue);
+          }
+          return  this._[key];
+        }
+      };
 			if(self){
 				this.routerBase = self.routerBase || this.routerBase;
 			}
@@ -370,7 +422,7 @@ _define_('jqrouter', function(jqrouter){
 					ref.fun.push({ cb : fun, id : id, url : __keys[_i], paramKeys : paramKeys,target : target });
 					if(intialized){
 						JQROUTER._callFun(
-								isHASH ? refineKey(document.location.hash) :
+								isHASH ? refineKey(getHash()) :
 								refineKey(document.location.pathname).replace(this.appContext,"/"),id);
 						this.$matched = this.$matched || $matched;
 					}
@@ -418,6 +470,11 @@ _define_('jqrouter', function(jqrouter){
     },
     getPostParams : function(key){
       return postState || {};
+    },
+    state : function(statename){
+      this._state_.name = this._state_.name || statename;
+      this._state_._ = hashStateData[this._state_.name ] || {};
+      return this._state_;
     },
     _ready_ : function(){
       var ijqr = this;
