@@ -1,4 +1,8 @@
 _define_('jqrouter', function(jqrouter){
+
+  var LOG  = function(){
+    return console.error("hashchange",arguments[0],arguments[1],arguments[2],arguments[3],arguments[4]);
+  }
 	
 	var JQROUTER = {},jqr;
 	var otherWise = true, $matched = false,$matched_any = false;
@@ -192,7 +196,6 @@ _define_('jqrouter', function(jqrouter){
 	JQROUTER.GO = debounce(function(url,params, postData, silent){
 		var _url = url+"";
 		var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname+_url+hash) : URI.clean(jqr.appContext + url));
-
     if(!is.Empty(params)){
       JQROUTER.SET_PARAMS(params, goURL,postData);
     } else {
@@ -274,14 +277,14 @@ _define_('jqrouter', function(jqrouter){
               if(!newURL.hash && newURL.pathname === window.location.pathname){
                 b = b + getHash() + appendState();
               }
-              b = (b||"").trim()
+              b = (b||"").trim();
               if(LAST_URL != b){
                 LAST_URL = b;
                 ret = pushState.apply(history, [postState,a,b,c,silent]);
               }
 		        }
 	        } catch (e){
-	        	console.error("JQROUTER::",e);
+            LOG("JQROUTER::",e);
 	        }
           if(!silent){
             hashchange();
@@ -290,6 +293,7 @@ _define_('jqrouter', function(jqrouter){
 	    };
 		window.onpopstate = history.onpushstate = function(e,a,b,c) {
       postState = e.state || {};
+      LAST_URL = e,window.location.href;
 			hashchange();
 		};
 		hashchange();
