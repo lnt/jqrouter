@@ -532,11 +532,19 @@ _define_('jqrouter', function(jqrouter){
             target.getAttribute("jqr-post") || undefined,
             target.getAttribute("href"));
         var isPost = target.hasAttribute("jqr-post");
+        var newWindow = (e.metaKey || e.ctrlKey);
+
         if (link) {
-          jqrouter[isPost ? "post" : "go"](link, jQuery(target).data());
+          if(!newWindow){
+            jqrouter[isPost ? "post" : "go"](link, jQuery(target).data());
+          }
         }
         if(target.tagName.toUpperCase() == "A"){
-          return preventPropagation(e);
+          if(!newWindow){
+            return preventPropagation(e);
+          }
+        } else if(newWindow){
+           window.open(link,'_blank');
         }
       });
     }
