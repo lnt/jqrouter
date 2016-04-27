@@ -1,7 +1,7 @@
 _define_('jqrouter', function(jqrouter){
 
   var LOG  = function(){
-    return console.error("hashchange",arguments[0],arguments[1],arguments[2],arguments[3],arguments[4]);
+    //return console.error("hashchange",arguments[0],arguments[1],arguments[2],arguments[3],arguments[4]);
   }
 	
 	var JQROUTER = {},jqr;
@@ -62,6 +62,7 @@ _define_('jqrouter', function(jqrouter){
 		if(_hashChange){
 			JQROUTER.invoke(hash);
 		}
+    LOG("_pathChange",_pathChange)
 		if(_pathChange){
 			JQROUTER.invoke(pathname.replace(jqr.appContext,"/"));
 		}
@@ -278,8 +279,10 @@ _define_('jqrouter', function(jqrouter){
                 b = b + getHash() + appendState();
               }
               b = (b||"").trim();
+              LOG(LAST_URL,"==",b,"===",LAST_URL != b);
               if(LAST_URL != b){
                 LAST_URL = b;
+                LOG("PUSHING",postState,a,b,c,silent)
                 ret = pushState.apply(history, [postState,a,b,c,silent]);
               }
 		        }
@@ -360,6 +363,15 @@ _define_('jqrouter', function(jqrouter){
 			ins._instance_.apply(ins,arguments);
 			return ins;
 		},
+    map : function(routerEvents){
+      var self = this, id = "___jq__bind__" + getUUID();
+      return function(){
+          if(!this.hasOwnProperty(id)){
+            this[id] = self.instance().bind(this,routerEvents);
+          }
+          return this[id];
+      }
+    },
 		bind : function(self,routerEvents){
       var rtr = this;
       var _routerEvents = routerEvents || self.routerEvents;
