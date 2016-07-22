@@ -318,6 +318,15 @@ _define_('jqrouter', function(jqrouter) {
         }
         return undefined;
     };
+    var RouterLock = function(prop) {
+        mixin(this, prop);
+    };
+    RouterLock.prototype.unlock = function() {
+        var self = this;
+        jqr._lock = jqr._lock.filter(function(obj) {
+            return obj != self;
+        });
+    };
 
     //APIS Starts from Here
     jqr = {
@@ -335,6 +344,7 @@ _define_('jqrouter', function(jqrouter) {
         },
         _instance_: function(self, routerEvents) {
             this.ids = [];
+            this.__id__ = getUUID();
             this.$matched = false;
             this._state_ = {
                 _: {},
@@ -452,6 +462,7 @@ _define_('jqrouter', function(jqrouter) {
             return this;
         },
         off: function() {
+            this.unlock();
             for (var i in this.ids) {
                 JQROUTER.dead[this.ids[i]] = true;
             }
@@ -495,6 +506,30 @@ _define_('jqrouter', function(jqrouter) {
             this._state_.name = this._state_.name || statename;
             this._state_._ = hashStateData[this._state_.name ] || {};
             return this._state_;
+        },
+        _lock: [],
+        lock: function(msg) {
+            var lockObject = new RouterLock({
+                msg: msg,
+                id: this.__id__
+            });
+            jqr._lock.push(lockObject);
+            return lockObject;
+        },
+        unlock: function() {
+            var self = this;
+            jqr._lock = jqr._lock.filter(function(obj) {
+                return (obj.id != self.__id__);
+            });
+        },
+        locked: function(e) {
+            return jqr._lock.length > 0;
+        },
+        confirm: function(e) {
+            if (this.locked() && !window.confirm(jqr._lock[jqr._lock.length - 1].msg)) {
+                return preventPropagation(e) || false;
+            }
+            return true;
         },
         _ready_: function() {
             var ijqr = this;
@@ -547,8 +582,12 @@ _define_('jqrouter', function(jqrouter) {
                         target.getAttribute("jqr-go") || undefined,
                         target.getAttribute("jqr-post") || undefined,
                     target.getAttribute("href"));
-                var isPost = target.hasAttribute("jqr-post");
-                var newWindow = (e.metaKey || e.ctrlKey);
+                var isPost = target.hasAttribute("jqr-post"), targetValue = target.getAttribute("target");
+                var newWindow = (e.metaKey || e.ctrlKey) || targetValue;
+
+                if (!newWindow && !ijqr.confirm(e)) {
+                    return false;
+                }
 
                 if (link) {
                     if (!newWindow) {
@@ -560,7 +599,7 @@ _define_('jqrouter', function(jqrouter) {
                         return preventPropagation(e);
                     }
                 } else if (newWindow) {
-                    window.open(link, '_blank');
+                    window.open(link, targetValue || '_blank');
                 }
             });
         }
