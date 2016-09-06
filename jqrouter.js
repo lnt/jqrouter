@@ -85,17 +85,6 @@ _define_('jqrouter', function(jqrouter) {
     JQROUTER.onchange_map = {};
 
     // execute event handler
-    JQROUTER._callFun = function(key, id, args) {
-        var keys = splitURL(key);
-        $matched = false;
-        if (this.onchange_fun.next) {
-            return this.onchange_fun.next(0, {
-                url: key, arg: [], extraArg: args,
-                index: 0, keys: keys, id: id
-            });
-        }
-    };
-
     JQROUTER.next = function(index, o) {
         var curIndex = o.index++;
         if (this['@' + o.keys[index]]) {
@@ -122,6 +111,17 @@ _define_('jqrouter', function(jqrouter) {
             }
         }
         return true;
+    };
+
+    JQROUTER._callFun = function(key, id, args) {
+        var keys = splitURL(key);
+        $matched = false;
+        if (this.onchange_fun.next) {
+            return this.onchange_fun.next(0, {
+                url: key, arg: [], extraArg: args,
+                index: 0, keys: keys, id: id
+            });
+        }
     };
 
     function RouterEvent(o, funJ) {
@@ -156,11 +156,15 @@ _define_('jqrouter', function(jqrouter) {
     };
 
     // process event queue
-    JQROUTER.trigger = function(arg) {
+    JQROUTER.trigger = function(args) {
         for (var key in this.onchange_map) {
-            var propagation = this._callFun(key, undefined, arg);
+            var propagation = this._callFun(key, undefined, args);
             delete this.onchange_map[key];
         }
+        jqr._router_(new RouterEvent({
+            url: null, arg: [], extraArg: args,
+            index: null, keys: [], id: null
+        }, {url : ""}), key, hashData, postState);
     };
 
     var isChanged = function(key, value) {
@@ -395,6 +399,11 @@ _define_('jqrouter', function(jqrouter) {
                             self[fName].apply(self, arguments);
                         } else if (is.Function(self["_routerEvents_"])) {
                             self["_routerEvents_"].apply(self, arguments);
+                        } else if (is.Function(self["_router404_"])) {
+                            self["_router404_"].apply(self, arguments);
+                        }
+                        if (is.Function(self["_router_"])) {
+                            self["_router_"].apply(self, arguments);
                         }
                     }, fName);
                     rtr.__bindStack__--;
@@ -530,6 +539,9 @@ _define_('jqrouter', function(jqrouter) {
                 return preventPropagation(e) || false;
             }
             return true;
+        },
+        _router_ : function(){
+           // console.error("_router_",arguments)
         },
         _ready_: function() {
             var ijqr = this;
