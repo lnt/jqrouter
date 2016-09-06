@@ -131,6 +131,7 @@ _define_('jqrouter', function(jqrouter) {
         }
         this.args = o.arg;
         this.url = o.url;
+        this.total = o.total;
         this.urlEvent = funJ.url.replace(/\{\_\}/g, "*");
     }
 
@@ -157,11 +158,13 @@ _define_('jqrouter', function(jqrouter) {
 
     // process event queue
     JQROUTER.trigger = function(args) {
+        var total = Object.keys(this.onchange_map).length;
         for (var key in this.onchange_map) {
             var propagation = this._callFun(key, undefined, args);
             delete this.onchange_map[key];
         }
         jqr._router_(new RouterEvent({
+            total : total,
             url: null, arg: [], extraArg: args,
             index: null, keys: [], id: null
         }, {url : ""}), key, hashData, postState);
