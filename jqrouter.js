@@ -422,6 +422,10 @@ _define_('jqrouter', function(jqrouter) {
             }
         },
         on: function(__key, fun, target) {
+            if(is.Function(__key)){
+                jqr._router_ = __key;
+                return this;
+            }
             var __keys = (__key.indexOf("*") > -1) ? [__key.replace("*", "{_}"), __key.replace("*", "")] : [__key];
             var isHASH = __key.indexOf("#") > -1;
             var isQUERY = __key.indexOf("?") == 0;
