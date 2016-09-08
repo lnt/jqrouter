@@ -194,6 +194,11 @@ _define_('jqrouter', function(jqrouter) {
                 paramEvents[i].fun(keyname, hashData[keyname]);
             }
         }
+        jqr._router_(new RouterEvent({
+            url: null, arg: [], extraArg: [],
+            index: null, keys: [], id: null
+        }, {url : ""}), "?"+keyname, hashData, postState);
+
         return KEYNAME_LIST = {};
     });
 
