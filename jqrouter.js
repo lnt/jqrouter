@@ -1,7 +1,7 @@
 _define_('jqrouter', function(jqrouter) {
 
     var LOG = function() {
-        //return console.error("hashchange",arguments[0],arguments[1],arguments[2],arguments[3],arguments[4]);
+        //return console.error("jqrouter",arguments[0],arguments[1],arguments[2],arguments[3],arguments[4]);
     };
 
     var JQROUTER = {}, jqr;
@@ -21,9 +21,14 @@ _define_('jqrouter', function(jqrouter) {
             return document.location.hash = newHash;
         }
     };
-    var setHash = function(value) {
+    var setHash = function(value, silent) {
         var newHash = value + appendState();
-        return document.location.hash = newHash;
+        if (!silent) {
+            return document.location.hash = newHash;
+        } else {
+            history.replaceState({}, "Default Route", value);
+            hashchange();
+        }
     };
 
     var appendState = function() {
@@ -67,7 +72,7 @@ _define_('jqrouter', function(jqrouter) {
             JQROUTER.invoke(pathname.replace(jqr.appContext, "/"));
         }
         if (_queryChange) {
-            JQROUTER.SET_PARAMS(URI.decode(queryString.slice(1)), _pathChange ? pathname.replace(jqr.appContext, "/") : undefined);
+            JQROUTER.SET_PARAMS(URI.decode(queryString.slice(1)), (_pathChange ? pathname.replace(jqr.appContext, "/") : undefined), undefined, hash);
         }
         setState(hashState);
     };
@@ -164,7 +169,7 @@ _define_('jqrouter', function(jqrouter) {
         jqr._router_(new RouterEvent({
             url: null, arg: [], extraArg: args,
             index: null, keys: [], id: null
-        }, {url : ""}), key, hashData, postState);
+        }, {url: ""}), key, hashData, postState);
     };
 
     var isChanged = function(key, value) {
@@ -197,7 +202,7 @@ _define_('jqrouter', function(jqrouter) {
         jqr._router_(new RouterEvent({
             url: null, arg: [], extraArg: [],
             index: null, keys: [], id: null
-        }, {url : ""}), "?"+keyname, hashData, postState);
+        }, {url: ""}), "?" + keyname, hashData, postState);
 
         return KEYNAME_LIST = {};
     });
@@ -243,7 +248,7 @@ _define_('jqrouter', function(jqrouter) {
             return JSON.parse(JSON.stringify(hashData));
         }
     };
-    JQROUTER.SET_PARAMS = function(newHashData, goUrl, postData) {
+    JQROUTER.SET_PARAMS = function(newHashData, goUrl, postData, hash) {
         if (goUrl !== undefined || true) { //Mandatory as Back-url will not work otherwise
             hashData = {};
         }
@@ -253,10 +258,11 @@ _define_('jqrouter', function(jqrouter) {
                 JQROUTER.CALL_PARAM_CHANGE(key);
             }
         }
+        LOG("SET_PARAMS", goUrl, hash);
         if (goUrl == undefined) {
             JQROUTER.GO("?" + URI.encode(hashData), undefined, postData);
         } else {
-            var info = URI.info(goUrl);
+            var info = URI.info(goUrl + (hash ? hash : ""));
             //if(goUrl.indexOf("?"==0)){
             JQROUTER.GO(pathname + "?" + URI.encode(hashData) + info.hash, undefined, postData);
             //}
@@ -267,7 +273,6 @@ _define_('jqrouter', function(jqrouter) {
         if (intialized) return;
         var pushState = history.pushState;
         history.pushState = function(state, a, b, c, silent) {
-
             var newURL = new URL("http://localhost:8080" + b)
             if (newURL.pathname === window.location.pathname
                 && newURL.search === window.location.search
@@ -275,16 +280,13 @@ _define_('jqrouter', function(jqrouter) {
                 return false;
             }
 
-            if (typeof history.onpushstate == "function") {
-                // history.onpushstate({state: state});
-            }
             var ret;
             if (newURL.pathname !== window.location.pathname) {
                 postState = state;
             }
             try {
                 if ((arguments[2] + "").indexOf("#") === 0) {
-                    setHash(arguments[2]);
+                    setHash(arguments[2], silent);
                 } else {
                     if (!newURL.hash && newURL.pathname === window.location.pathname) {
                         b = b + getHash() + appendState();
@@ -294,7 +296,12 @@ _define_('jqrouter', function(jqrouter) {
                     if (LAST_URL != b) {
                         LAST_URL = b;
                         LOG("PUSHING", postState, a, b, c, silent)
-                        ret = pushState.apply(history, [postState, a, b, c, silent]);
+                        if (silent) {
+                            ret = history.replaceState.apply(history, [postState, a, b, c, silent]);
+                        } else {
+                            ret = pushState.apply(history, [postState, a, b, c, silent]);
+                        }
+
                     }
                 }
             } catch (e) {
@@ -305,7 +312,12 @@ _define_('jqrouter', function(jqrouter) {
             }
             return ret;
         };
-        window.onpopstate = history.onpushstate = function(e, a, b, c) {
+        window.onpushstate = function(e, a, b, c) {
+            postState = e.state || {};
+            LAST_URL = e, window.location.href;
+            hashchange();
+        };
+        window.onpopstate = function(e, a, b, c) {
             postState = e.state || {};
             LAST_URL = e, window.location.href;
             hashchange();
@@ -347,9 +359,20 @@ _define_('jqrouter', function(jqrouter) {
         routerBase: "",
         __bindStack__: 0,
         start: function(appContext) {
-            jqr.appContext = appContext || jqr.appContext;
-            this.appContext = jqr.appContext; // jqr here and actual prototype are different so need to fix it
-            JQROUTER.intialize();
+            if (!JQROUTER.started) {
+                jqr.appContext = appContext || jqr.appContext;
+                this.appContext = jqr.appContext; // jqr here and actual prototype are different so need to fix it
+                JQROUTER.intialize();
+                JQROUTER.started = true;
+            }
+            return this;
+        },
+        init: function(defaultRoute) {
+            this.start();
+            if (defaultRoute) {
+                this.defaultRoute(defaultRoute);
+            }
+            return this;
         },
         _instance_: function(self, routerEvents) {
             this.ids = [];
@@ -386,7 +409,7 @@ _define_('jqrouter', function(jqrouter) {
         },
         map: function(routerEvents) {
             var self = this, id = "___jq__bind__" + getUUID();
-            return function() {
+            return function(defaultRoute) {
                 if (!this.hasOwnProperty(id)) {
                     this[id] = self.instance().bind(this, routerEvents);
                 }
@@ -427,7 +450,7 @@ _define_('jqrouter', function(jqrouter) {
             }
         },
         on: function(__key, fun, target) {
-            if(is.Function(__key)){
+            if (is.Function(__key)) {
                 jqr._router_ = __key;
                 return this;
             }
@@ -492,7 +515,7 @@ _define_('jqrouter', function(jqrouter) {
             var self = this;
             this.onbind(function() {
                 if (intialized && (otherWise || !self.$matched) && !$matched_any) {
-                    JQROUTER.GO(goToURL);
+                    JQROUTER.GO(goToURL, undefined, undefined, true);
                 } else if (!intialized) {
                     otherwiseURL = goToURL;
                 }
@@ -501,7 +524,7 @@ _define_('jqrouter', function(jqrouter) {
         },
         defaultRoute: debounce(function(goToURL) {
             if (!this.$matched) {
-                this.go(goToURL);
+                this.go(goToURL, undefined, undefined, true);
             }
             return this;
         }),
@@ -549,8 +572,8 @@ _define_('jqrouter', function(jqrouter) {
             }
             return true;
         },
-        _router_ : function(){
-           // console.error("_router_",arguments)
+        _router_: function() {
+            // console.error("_router_",arguments)
         },
         _ready_: function() {
             var ijqr = this;
