@@ -209,13 +209,13 @@ _define_('jqrouter', function(jqrouter) {
 
 
     //Globals Functions
-    JQROUTER.GO = debounce(function(url, params, postData, silent) {
+    JQROUTER.GO = debounce(function(url, params, postData, silent, replaceTrue) {
         var _url = url + "";
         var goURL = (_url.indexOf("#") === 0) ? url : ((_url.indexOf("?") === 0) ? (pathname + _url + hash) : URI.clean(jqr.appContext + url));
         if (!is.Empty(params)) {
             JQROUTER.SET_PARAMS(params, goURL, postData);
         } else {
-            return window.history.pushState(postData || {}, null, goURL, undefined, silent);
+            return window.history.pushState(postData || {}, null, goURL, undefined, silent, replaceTrue);
         }
     });
 
@@ -272,7 +272,7 @@ _define_('jqrouter', function(jqrouter) {
     JQROUTER.intialize = function(event) {
         if (intialized) return;
         var pushState = history.pushState;
-        history.pushState = function(state, a, b, c, silent) {
+        history.pushState = function(state, a, b, c, silent, replaceTrue) {
             var newURL = new URL("http://localhost:8080" + b)
             if (newURL.pathname === window.location.pathname
                 && newURL.search === window.location.search
@@ -286,7 +286,7 @@ _define_('jqrouter', function(jqrouter) {
             }
             try {
                 if ((arguments[2] + "").indexOf("#") === 0) {
-                    setHash(arguments[2], silent);
+                    setHash(arguments[2], replaceTrue);
                 } else {
                     if (!newURL.hash && newURL.pathname === window.location.pathname) {
                         b = b + getHash() + appendState();
@@ -296,7 +296,7 @@ _define_('jqrouter', function(jqrouter) {
                     if (LAST_URL != b) {
                         LAST_URL = b;
                         LOG("PUSHING", postState, a, b, c, silent)
-                        if (silent) {
+                        if (replaceTrue || silent) { //Dangerous bug, first does not work if redirected from different URL
                             ret = history.replaceState.apply(history, [postState, a, b, c, silent]);
                         } else {
                             ret = pushState.apply(history, [postState, a, b, c, silent]);
@@ -515,7 +515,7 @@ _define_('jqrouter', function(jqrouter) {
             var self = this;
             this.onbind(function() {
                 if (intialized && (otherWise || !self.$matched) && !$matched_any) {
-                    JQROUTER.GO(goToURL, undefined, undefined, true);
+                    JQROUTER.GO(goToURL, undefined, undefined, undefined, true);
                 } else if (!intialized) {
                     otherwiseURL = goToURL;
                 }
@@ -524,7 +524,7 @@ _define_('jqrouter', function(jqrouter) {
         },
         defaultRoute: debounce(function(goToURL) {
             if (!this.$matched) {
-                this.go(goToURL, undefined, undefined, true);
+                this.go(goToURL, undefined, undefined, undefined, true);
             }
             return this;
         }),
