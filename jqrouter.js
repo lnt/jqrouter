@@ -376,6 +376,7 @@ _define_('jqrouter', function(jqrouter) {
         },
         _instance_: function(self, routerEvents) {
             this.ids = [];
+            this.paramEventIds = [];
             this.__id__ = getUUID();
             this.$matched = false;
             this._state_ = {
